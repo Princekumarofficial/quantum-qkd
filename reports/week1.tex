@@ -1,0 +1,264 @@
+\begin{filecontents*}{document.bib}
+@online
+{
+    Sample21,
+    author        = {Sample Author},
+    title         = "{Sample Research Topic}",
+    journal       = {Journal Name},
+    archivePrefix = "arXiv",
+    eprint        = {2101.00000},
+    keywords      = {Sample Keywords},
+    year          = 2021,
+    month         = jan,
+    adsurl        = {http://example.com},
+    adsnote       = {Sample Note}
+}
+\end{filecontents*}
+
+% =============================================================================
+% MAIN DOCUMENT - Converted to new article template
+% =============================================================================
+
+\documentclass[12pt,oneside,letterpaper,english]{article}
+
+% --- Packages from the NEW template ---
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc} % UTF-8 encoding for compatibility with pdflatex and xetex
+\usepackage[margin=2.25cm,headheight=26pt,includeheadfoot]{geometry}
+\usepackage[english]{babel}
+\usepackage{listings}
+\usepackage{color}
+\usepackage{titlesec}
+\usepackage{titling}
+\usepackage[framed, numbered]{matlab-prettifier} % Keep this if using MATLAB code, but the original report only uses listings
+\usepackage{changepage}
+\usepackage{amsmath}
+\usepackage[colorlinks=true, linkcolor=black, urlcolor=blue, citecolor=blue]{hyperref}
+\usepackage{enumitem}
+\usepackage{graphicx}
+\usepackage{fancyhdr}
+\usepackage{lastpage}
+\usepackage{caption}
+\usepackage{tocloft}
+\usepackage{setspace}
+\usepackage{multirow}
+\usepackage{titling}
+\usepackage{float}
+\usepackage{comment}
+\usepackage{booktabs}
+\usepackage{indentfirst}
+\usepackage{lscape}
+\usepackage{booktabs,caption}
+\usepackage[flushleft]{threeparttable}
+\usepackage[english]{nomencl}
+\usepackage{xcolor}
+\usepackage{lipsum}
+\usepackage{datetime2}
+
+% --- Color settings for table of contents ---
+\usepackage{xcolor}
+\renewcommand{\cftsecfont}{\color{black}}
+\renewcommand{\cftsubsecfont}{\color{black}}
+\renewcommand{\cftfigfont}{\color{black}}
+
+% --- Packages from the OLD report (kept for content rendering) ---
+\usepackage{calc} % Used by original projectfp.sty
+\usepackage{tikz} % Used by original projectfp.sty
+\usepackage{textcomp}
+\usepackage{lmodern}
+\usepackage[scaled]{beramono}
+\renewcommand{\sfdefault}{phv}
+\usepackage[final]{microtype}
+\usepackage{amssymb}
+\usepackage{amsthm}
+\usepackage{thmtools}
+\usepackage{mathtools}
+\usepackage{mathrsfs}
+\usepackage{csquotes}
+\graphicspath{{figures/}} % Keep original graphicspath
+
+\bibliographystyle{ieeetr}
+
+% --- Theorem-like environments from OLD report (adapted for article class) ---
+\usepackage{chngcntr}
+\declaretheorem[style = plain]{theorem}
+\counterwithout{theorem}{section} % Reset numbering for article class
+\declaretheorem[style = plain, sibling = theorem]{corollary}
+\declaretheorem[style = plain, sibling = theorem]{lemma}
+\declaretheorem[style = plain, sibling = theorem]{proposition}
+\declaretheorem[style = definition, sibling = theorem]{definition}
+\declaretheorem[style = definition, sibling = theorem]{example}
+\declaretheorem[style = remark, numbered = no]{remark}
+
+% --- Delimiters and Operators from OLD report ---
+\DeclarePairedDelimiter{\p}{\lparen}{\rparen}    % Parenthesis
+\DeclarePairedDelimiter{\set}{\lbrace}{\rbrace} % Set
+\DeclarePairedDelimiter{\abs}{\lvert}{\rvert}   % Absolute value
+\DeclarePairedDelimiter{\norm}{\lVert}{\rVert}  % Norm
+\newcommand{\diff}{\mathop{}\!\mathrm{d}}
+\DeclareMathOperator{\im}{im}
+\DeclareMathOperator{\rank}{rank}
+\DeclareMathOperator{\E}{E}
+\DeclareMathOperator{\Var}{Var}
+\DeclareMathOperator{\Cov}{Cov}
+\newcommand{\N}{\mathbb{N}}    % Natural numbers
+\newcommand{\Z}{\mathbb{Z}}    % Integers
+\newcommand{\Q}{\mathbb{Q}}    % Rational numbers
+\newcommand{\R}{\mathbb{R}}    % Real numbers
+\newcommand{\C}{\mathbb{C}}    % Complex numbers
+\newcommand{\A}{\mathbb{A}}    % Affine space
+\renewcommand{\P}{\mathbb{P}} % Projective space
+\renewcommand{\qedsymbol}{\(\blacksquare\)}
+
+% --- Bibliography from OLD report (using standard LaTeX style) ---
+\usepackage{url}
+% \usepackage[numbers]{natbib} % For citation commands if needed (though not used in content)
+% --- User Details from OLD report ---
+\title{Understanding the PS and Deciding the Tools}
+\author{Prince Kumar, Roll No. - 230051013}
+\newcommand{\supervisorname}{Dr. Shashank Gupta}
+
+% --- NEW template settings ---
+\setlength{\parindent}{2em}
+\makeatletter\let\Title\@title\makeatother
+
+\newlist{steps}{enumerate}{1}
+\setlist[steps, 1]{leftmargin=1.5cm,label = Step \arabic*:}
+\renewcommand{\headrulewidth}{1pt}
+\renewcommand{\footrulewidth}{1pt}
+\renewcommand{\rmdefault}{ptm}
+
+\pagestyle{fancy}
+\fancyhf{}
+\rhead{\nouppercase{\rightmark}}
+\lhead{\Title}
+\setlength\headheight{16pt}
+\setlength{\footskip}{50pt}
+\cfoot{\thepage}
+
+% --- Content Formatting: Mimic old report's headings where possible ---
+\titleformat{\section}{\large\bfseries\sffamily\raggedright}{\thesection}{1em}{}
+\titleformat{\subsection}{\large\bfseries\sffamily\raggedright}{\thesubsection}{1em}{}
+\titleformat{\subsubsection}{\normalsize\bfseries\sffamily\raggedright}{\thesubsubsection}{1em}{}
+
+% --- END NEW template settings ---
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%%%% The titlepage  %%%%%%%%%%%%
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+
+\begin{document}
+
+\pagenumbering{roman} 
+
+\input{sources/0_frontpage.tex}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%% Abstract (Template Content) %%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{abstract}
+    \noindent
+    This weekly report documents the progress made in understanding the problem statement for quantum key distribution (QKD) network simulation and the evaluation of tools and frameworks for implementation. The report covers the exploration of potential simulation platforms and the decision-making process for selecting appropriate tools based on learning curve, documentation, and community support. Key activities include a comparative analysis of NetSquid \cite{NetSquidTutorial} and Sequence \cite{SequenceTutorial} frameworks, with findings and recommendations for the next phase of development.
+\end{abstract}
+\newpage
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%% Table of Contents %%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\addcontentsline{toc}{section}{Table of Contents}
+\renewcommand{\baselinestretch}{1}\normalsize
+\tableofcontents
+\renewcommand{\baselinestretch}{1}\normalsize
+\thispagestyle{fancy}
+\newpage
+
+\pagenumbering{arabic}
+\doublespacing
+\thispagestyle{fancy}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%% Content %%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\section{Introduction}
+
+This report documents the first week of the quantum key distribution (QKD) network simulation project. The primary objective during this week was to gain a comprehensive understanding of the problem statement and to evaluate available tools and frameworks for implementing a QKD network simulation. The focus was on identifying the most suitable platform for simulating the Bennet-Brassard-Mermin-92 (BBM92) \cite{BBM92Paper} quantum key distribution protocol.
+
+\section{Activities and Findings}
+
+\subsection{Understanding the Problem Statement}
+
+The initial phase involved a thorough examination of the problem statement and project scope. The goal is to simulate a QKD network, which requires understanding quantum mechanics principles, network topology, and discrete event simulation systems.
+
+\subsection{Protocol Selection and Exploration}
+
+\textbf{Initial Protocol Decision:} Based on the problem statement analysis, the BBM92 protocol was selected as the first protocol to implement. This protocol provides a good balance between complexity and implementation feasibility for the initial simulation.
+
+\subsection{Framework Evaluation}
+
+A comparative analysis was conducted on two primary quantum network simulation frameworks: NetSquid \cite{NetSquidTutorial} and Sequence \cite{SequenceTutorial}. The following findings were documented:
+
+\subsubsection{NetSquid Framework}
+
+\begin{itemize}
+    \item \textbf{Learning Curve:} NetSquid demonstrates an easier learning curve compared to alternatives.
+    \item \textbf{Community and Support:} The NetSquid forum is not very active and is not currently accepting new signups, which may limit community-based learning opportunities.
+    \item \textbf{Documentation:} Tutorials are available at \url{https://github.com/ccicconetti/netsquid}.
+    \item \textbf{Overall Assessment:} Suitable for initial implementation due to ease of learning.
+\end{itemize}
+
+\subsubsection{Sequence Framework}
+
+\begin{itemize}
+    \item \textbf{Learning Curve:} Sequence presents a steeper learning curve compared to NetSquid.
+    \item \textbf{Community and Support:} The framework shows regular development and active maintenance.
+    \item \textbf{Documentation:} Comprehensive documentation is available at \url{https://sequence-rtd-tutorial.readthedocs.io/stable/tutorial/chapter1/discrete-event-simulation.html}.
+    \item \textbf{Overall Assessment:} More powerful but requires greater learning effort.
+\end{itemize}
+
+\section{Key Findings}
+
+The comparative analysis revealed the following key findings:
+
+\begin{itemize}
+    \item \textbf{Learning Accessibility:} NetSquid \cite{NetSquidTutorial} provides an easier entry point for quantum network simulation development.
+    \item \textbf{Development Activity:} Sequence \cite{SequenceTutorial} demonstrates more active ongoing development and maintenance.
+    \item \textbf{Documentation Quality:} Both frameworks offer reasonable documentation, though Sequence appears more comprehensive.
+    \item \textbf{Community Support:} NetSquid's community is limited and does not accept new signups, while Sequence's development appears more robust.
+    \item \textbf{Initial Implementation Strategy:} Sequence \cite{SequenceTutorial} is selected for implementation due to NetSquid's restriction on new signups and Sequence's more active development and comprehensive documentation.
+\end{itemize}
+
+\section{Next Steps and Future Work}
+
+Based on the findings from this week, the next phase of development will focus on:
+
+\begin{enumerate}
+    \item \textbf{Understanding Discrete Event Simulation (DES) Systems:} A comprehensive study of DES principles and implementation patterns to serve as the foundation for the QKD network simulation.
+    \item \textbf{Building a Ping-Pong Network System:} Development of a simple network architecture as an initial test case to understand the mechanics of network simulation and tool functionality.
+\end{enumerate}
+
+These foundational activities will enable the subsequent implementation of the BBM92 \\cite{BBM92Paper} protocol and more complex QKD network scenarios.
+
+\section{Conclusion}
+
+This week successfully established the groundwork for the QKD network simulation project. Through systematic evaluation of available frameworks and tools, a clear direction has been established for future development. While NetSquid \cite{NetSquidTutorial} was initially considered due to its easier learning curve, the decision to use Sequence \cite{SequenceTutorial} has been made, as NetSquid no longer accepts new signups. Sequence's active development, comprehensive documentation, and robust community support make it the appropriate choice for implementing the QKD network simulation. The planned focus on discrete event simulation systems and basic network architecture in the following week will provide the necessary foundation for implementing the BBM92 \cite{BBM92Paper} protocol and achieving the project objectives.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%  List of References  %%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\newpage
+\addcontentsline{toc}{section}{References}
+\bibliography{document.bib}
+\bibliographystyle{ieeetr}
+
+\nocite{NetSquidTutorial, SequenceTutorial, BBM92Paper}
+
+\end{document}

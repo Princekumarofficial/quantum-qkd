@@ -1,0 +1,8 @@
+.venv
+*.log
+*.aux
+*.out
+*.toc
+*.synctex.gz
+*.lof
+*.bbl

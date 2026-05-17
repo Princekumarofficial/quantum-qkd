@@ -1,0 +1,354 @@
+\begin{filecontents*}{document.bib}
+@online
+{
+    Sample21,
+    author        = {Sample Author},
+    title         = "{Sample Research Topic}",
+    journal       = {Journal Name},
+    archivePrefix = "arXiv",
+    eprint        = {2101.00000},
+    keywords      = {Sample Keywords},
+    year          = 2021,
+    month         = jan,
+    adsurl        = {http://example.com},
+    adsnote       = {Sample Note}
+}
+\end{filecontents*}
+
+% =============================================================================
+% MAIN DOCUMENT - Converted to new article template
+% =============================================================================
+
+\documentclass[12pt,oneside,letterpaper,english]{article}
+
+% --- Packages from the NEW template ---
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc} % UTF-8 encoding for compatibility with pdflatex and xetex
+\usepackage[margin=2.25cm,headheight=26pt,includeheadfoot]{geometry}
+\usepackage[english]{babel}
+\usepackage{listings}
+\usepackage{color}
+\usepackage{titlesec}
+\usepackage{titling}
+\usepackage[framed, numbered]{matlab-prettifier} % Keep this if using MATLAB code, but the original report only uses listings
+\usepackage{changepage}
+\usepackage{amsmath}
+\usepackage[colorlinks=true, linkcolor=black, urlcolor=blue, citecolor=blue]{hyperref}
+\usepackage{enumitem}
+\usepackage{graphicx}
+\usepackage{fancyhdr}
+\usepackage{lastpage}
+\usepackage{caption}
+\usepackage{tocloft}
+\usepackage{setspace}
+\usepackage{multirow}
+\usepackage{titling}
+\usepackage{float}
+\usepackage{comment}
+\usepackage{booktabs}
+\usepackage{indentfirst}
+\usepackage{lscape}
+\usepackage{booktabs,caption}
+\usepackage[flushleft]{threeparttable}
+\usepackage[english]{nomencl}
+\usepackage{xcolor}
+\usepackage{lipsum}
+\usepackage{datetime2}
+
+% --- Color settings for table of contents ---
+\usepackage{xcolor}
+\renewcommand{\cftsecfont}{\color{black}}
+\renewcommand{\cftsubsecfont}{\color{black}}
+\renewcommand{\cftfigfont}{\color{black}}
+
+% --- Packages from the OLD report (kept for content rendering) ---
+\usepackage{calc} % Used by original projectfp.sty
+\usepackage{tikz} % Used by original projectfp.sty
+\usepackage{textcomp}
+\usepackage{lmodern}
+\usepackage[scaled]{beramono}
+\renewcommand{\sfdefault}{phv}
+\usepackage[final]{microtype}
+\usepackage{amssymb}
+\usepackage{amsthm}
+\usepackage{thmtools}
+\usepackage{mathtools}
+\usepackage{mathrsfs}
+\usepackage{csquotes}
+\graphicspath{{figures/}} % Keep original graphicspath
+
+% --- Theorem-like environments from OLD report (adapted for article class) ---
+\usepackage{chngcntr}
+\declaretheorem[style = plain]{theorem}
+\counterwithout{theorem}{section} % Reset numbering for article class
+\declaretheorem[style = plain, sibling = theorem]{corollary}
+\declaretheorem[style = plain, sibling = theorem]{lemma}
+\declaretheorem[style = plain, sibling = theorem]{proposition}
+\declaretheorem[style = definition, sibling = theorem]{definition}
+\declaretheorem[style = definition, sibling = theorem]{example}
+\declaretheorem[style = remark, numbered = no]{remark}
+
+% --- Delimiters and Operators from OLD report ---
+\DeclarePairedDelimiter{\p}{\lparen}{\rparen}    % Parenthesis
+\DeclarePairedDelimiter{\set}{\lbrace}{\rbrace} % Set
+\DeclarePairedDelimiter{\abs}{\lvert}{\rvert}   % Absolute value
+\DeclarePairedDelimiter{\norm}{\lVert}{\rVert}  % Norm
+\newcommand{\diff}{\mathop{}\!\mathrm{d}}
+\DeclareMathOperator{\im}{im}
+\DeclareMathOperator{\rank}{rank}
+\DeclareMathOperator{\E}{E}
+\DeclareMathOperator{\Var}{Var}
+\DeclareMathOperator{\Cov}{Cov}
+\newcommand{\N}{\mathbb{N}}    % Natural numbers
+\newcommand{\Z}{\mathbb{Z}}    % Integers
+\newcommand{\Q}{\mathbb{Q}}    % Rational numbers
+\newcommand{\R}{\mathbb{R}}    % Real numbers
+\newcommand{\C}{\mathbb{C}}    % Complex numbers
+\newcommand{\A}{\mathbb{A}}    % Affine space
+\renewcommand{\P}{\mathbb{P}} % Projective space
+\renewcommand{\qedsymbol}{\(\blacksquare\)}
+
+% --- Bibliography from OLD report (using standard LaTeX style) ---
+\usepackage{url}
+\usepackage{natbib} % For citation commands if needed (though not used in content)
+\bibliographystyle{ieeetr} % Used by new template
+
+% --- User Details from OLD report ---
+\title{Generic Report Template}
+\author{Prince Kumar, Roll No. - 230051013}
+\newcommand{\supervisorname}{Dr. Shashank Gupta}
+
+% --- NEW template settings ---
+\setlength{\parindent}{2em}
+\makeatletter\let\Title\@title\makeatother
+
+\newlist{steps}{enumerate}{1}
+\setlist[steps, 1]{leftmargin=1.5cm,label = Step \arabic*:}
+\renewcommand{\headrulewidth}{1pt}
+\renewcommand{\footrulewidth}{1pt}
+\renewcommand{\rmdefault}{ptm}
+
+\pagestyle{fancy}
+\fancyhf{}
+\rhead{\nouppercase{\rightmark}}
+\lhead{\Title}
+\setlength\headheight{16pt}
+\setlength{\footskip}{50pt}
+\cfoot{\thepage}
+
+% --- Content Formatting: Mimic old report's headings where possible ---
+\titleformat{\section}{\large\bfseries\sffamily\raggedright}{\thesection}{1em}{}
+\titleformat{\subsection}{\large\bfseries\sffamily\raggedright}{\thesubsection}{1em}{}
+\titleformat{\subsubsection}{\normalsize\bfseries\sffamily\raggedright}{\thesubsubsection}{1em}{}
+
+% --- END NEW template settings ---
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%%%% The titlepage  %%%%%%%%%%%%
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+
+\begin{document}
+
+\pagenumbering{roman} 
+
+\input{sources/0_frontpage.tex}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%% Abstract (Template Content) %%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{abstract}
+    \noindent
+    This report presents a comprehensive analysis and detailed examination of the subject matter under investigation. It includes relevant background information, methodological approaches, analytical results, and key findings. The document demonstrates both theoretical frameworks and practical implementations to validate conclusions and illustrate the effectiveness of the approaches employed.
+\end{abstract}
+\newpage
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%% Table of Contents (Modified to match new template) %%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\addcontentsline{toc}{section}{Table of Contents}
+\renewcommand{\baselinestretch}{1}\normalsize
+\tableofcontents
+\renewcommand{\baselinestretch}{1}\normalsize
+\thispagestyle{fancy}
+\newpage
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%% List of Figures (Original Content inserted here) %%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\addcontentsline{toc}{section}{List of Figures}
+\listoffigures
+\thispagestyle{fancy}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%% List of Tables %%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% \newpage
+% \addcontentsline{toc}{section}{List of Tables}
+% \listoftables
+% \thispagestyle{fancy}
+
+\newpage
+\pagenumbering{arabic}
+\doublespacing
+\thispagestyle{fancy}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%% Content - Converted from Chapters to Sections %%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\section{Introduction}
+
+This document presents a comprehensive analysis covering multiple aspects of the subject matter under investigation.
+
+The first part of the report provides essential background information, context, and foundational concepts necessary for understanding the main topics discussed. It establishes the framework and theoretical basis upon which subsequent analyses are built.
+
+The second part of the report transitions to detailed examination, implementation, and application of the concepts introduced earlier. This section explores both practical considerations and advanced techniques, demonstrating their effectiveness through examples and analysis.
+
+\section{Methodology and Theoretical Background}
+
+\subsection{Section 1}
+\subsubsection{Overview}
+Provide an overview of the methodology, approach, or theoretical framework being employed.
+
+\subsubsection{Detailed Discussion}
+Present detailed information, theoretical foundations, mathematical formulations, or detailed explanations of the methodology.
+
+\subsection{Section 2}
+\subsubsection{Overview}
+Provide an overview of additional methodological considerations or theoretical aspects.
+
+\subsubsection{Detailed Discussion}
+Present detailed information and analysis of this section's content.
+
+\section{Implementation and Results}
+
+\subsection{Theoretical Framework}
+This section provides the theoretical foundations and underlying principles for the implementation presented. Explain the key concepts and mathematical framework that guide the approach.
+
+The core principles utilized establish the connection between theory and practice. These principles enable the development of robust and effective solutions.
+
+\subsection{Methodology and Approach}
+
+To demonstrate the effectiveness of the proposed methods, we employ structured approaches and validation techniques. This modular approach allows for clear evaluation and adaptation to different contexts.
+
+\subsubsection{Main Approach}
+Describe the primary methodology, algorithm, or implementation strategy being employed.
+
+\begin{lstlisting}[caption={Pseudocode for the Main Approach}, label={lst:algo}]
+algorithm_name:
+    Input: parameters
+    Step 1: Initialize variables
+    Step 2: Perform computation
+    Step 3: Calculate results
+    Output: final_result
+\end{lstlisting}
+
+\subsection{Analysis and Validation}
+
+A critical aspect of any implementation is verifying its correctness and effectiveness. We conduct systematic analysis to evaluate performance and validate results.
+
+To validate our approach, we performed experiments with varying parameters and analyzed how results compare to theoretical expectations.
+
+\begin{lstlisting}[caption={Validation Study}, label={lst:conv}]
+results = [];
+for parameter = minimum to maximum:
+    run_implementation(parameter)
+    store_results()
+    compare_with_theoretical_values()
+\end{lstlisting}
+
+\subsection{Key Findings and Results}
+
+The implementation yielded significant results:
+
+\begin{itemize}
+    \item \textbf{Primary Finding:} Describe the main result or conclusion from the implementation.
+    \item \textbf{Secondary Finding:} Describe additional important findings or observations.
+    \item \textbf{Validation:} Confirm that results align with theoretical expectations and validate the approach.
+\end{itemize}
+
+These findings confirm that the proposed method provides an effective and robust approach for addressing the problem domain.
+
+\section{Case Study: Practical Application}
+
+\subsection{Context and Framework}
+This section applies the methods developed earlier to a specific practical scenario. The context is established first, providing the foundation for the application.
+
+Consider the practical problem or application domain. The framework and relevant principles guide the implementation for this specific use case.
+
+\subsection{Application Development}
+To implement the approach for this case study, we develop a structured implementation that performs the necessary operations and demonstrates the results.
+
+\subsubsection{Practical Implementation}
+
+First, we develop and present the implementation details.
+
+\begin{lstlisting}[caption={Implementation Code}, label={lst:viz}]
+implementation:
+    generate_data()
+    process_results()
+    create_output()
+\end{lstlisting}
+
+\begin{figure}[h!]
+    \centering
+    \framebox[\textwidth]{[Insert Figure: sample\_figure.png]}
+    \caption{Visualization of the case study results and implementation outcomes.}
+    \label{fig:sample}
+\end{figure}
+
+\subsection{Results and Analysis}
+We analyze how the implementation performs under different conditions and evaluate the practical outcomes.
+
+\begin{lstlisting}[caption={Results Analysis}, label={lst:piconv}]
+total_iterations = 10000;
+data = generate_data(total_iterations);
+results = process_data(data);
+analysis = calculate_metrics(results);
+\end{lstlisting}
+
+\subsubsection{Outcomes and Observations}
+The case study analysis is presented in Figure \ref{fig:convergence}.
+
+\begin{figure}[h!]
+    \centering
+    \framebox[\textwidth]{[Insert Figure: convergence\_figure.png]}
+    \caption{Analysis of results as a function of relevant parameters and conditions.}
+    \label{fig:convergence}
+\end{figure}
+
+\textbf{Key Observations:}
+\begin{itemize}
+    \item \textbf{Initial Behavior:} Describe initial results and early-stage observations.
+    \item \textbf{Development:} Describe how results evolve and improve with increased effort or resources.
+    \item \textbf{Final Outcomes:} Describe final results and their significance relative to the objectives.
+\end{itemize}
+
+\section{Conclusions}
+
+The analysis and implementation presented in this report demonstrate the effectiveness and relevance of the approaches employed. The theoretical frameworks established in the methodology section provide solid foundations for the practical implementations presented.
+
+In the implementation section, the systematic approach successfully demonstrated the practical application of the developed methods. The results confirm that the proposed approach achieves the intended objectives and aligns with theoretical predictions.
+
+The case study application illustrates how the methods can be effectively adapted and applied to practical scenarios. With appropriate parameter selection and careful implementation, the approach yields accurate and meaningful results that address the underlying problems and objectives.
+
+The evidence presented throughout this report supports the conclusion that the methods are effective, robust, and suitable for their intended purposes. Future work may explore extensions of these approaches to additional problem domains or investigate optimizations to improve efficiency further.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%  List of References  %%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% \newpage
+% \addcontentsline{toc}{section}{References}
+% \bibliography{document.bib}
+% \bibliographystyle{ieeetr}
+
+\end{document}

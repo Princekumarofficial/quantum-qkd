@@ -1,0 +1,7 @@
+qutip
+networkx
+numpy
+scipy
+pandas
+matplotlib
+sequence
