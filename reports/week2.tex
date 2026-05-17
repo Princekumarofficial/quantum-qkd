@@ -1,0 +1,405 @@
+\begin{filecontents*}{document.bib}
+@online
+{
+    Sample21,
+    author        = {Sample Author},
+    title         = "{Sample Research Topic}",
+    journal       = {Journal Name},
+    archivePrefix = "arXiv",
+    eprint        = {2101.00000},
+    keywords      = {Sample Keywords},
+    year          = 2021,
+    month         = jan,
+    adsurl        = {http://example.com},
+    adsnote       = {Sample Note}
+}
+\end{filecontents*}
+
+% =============================================================================
+% MAIN DOCUMENT - Converted to new article template
+% =============================================================================
+
+\documentclass[12pt,oneside,letterpaper,english]{article}
+
+% --- Packages from the NEW template ---
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc} % UTF-8 encoding for compatibility with pdflatex and xetex
+\usepackage[margin=2.25cm,headheight=26pt,includeheadfoot]{geometry}
+\usepackage[english]{babel}
+\usepackage{listings}
+\usepackage{color}
+\usepackage{titlesec}
+\usepackage{titling}
+\usepackage[framed, numbered]{matlab-prettifier} % Keep this if using MATLAB code, but the original report only uses listings
+\usepackage{changepage}
+\usepackage{amsmath}
+\usepackage[colorlinks=true, linkcolor=black, urlcolor=blue, citecolor=blue]{hyperref}
+\usepackage{enumitem}
+\usepackage{graphicx}
+\usepackage{fancyhdr}
+\usepackage{lastpage}
+\usepackage{caption}
+\usepackage{tocloft}
+\usepackage{setspace}
+\usepackage{multirow}
+\usepackage{titling}
+\usepackage{float}
+\usepackage{comment}
+\usepackage{booktabs}
+\usepackage{indentfirst}
+\usepackage{lscape}
+\usepackage{booktabs,caption}
+\usepackage[flushleft]{threeparttable}
+\usepackage[english]{nomencl}
+\usepackage{xcolor}
+\usepackage{lipsum}
+\usepackage{datetime2}
+
+% --- Color settings for table of contents ---
+\usepackage{xcolor}
+\renewcommand{\cftsecfont}{\color{black}}
+\renewcommand{\cftsubsecfont}{\color{black}}
+\renewcommand{\cftfigfont}{\color{black}}
+
+% --- Packages from the OLD report (kept for content rendering) ---
+\usepackage{calc} % Used by original projectfp.sty
+\usepackage{tikz} % Used by original projectfp.sty
+\usepackage{textcomp}
+\usepackage{lmodern}
+\usepackage[scaled]{beramono}
+\renewcommand{\sfdefault}{phv}
+\usepackage[final]{microtype}
+\usepackage{amssymb}
+\usepackage{amsthm}
+\usepackage{thmtools}
+\usepackage{mathtools}
+\usepackage{mathrsfs}
+\usepackage{csquotes}
+\graphicspath{{figures/}} % Keep original graphicspath
+
+\bibliographystyle{ieeetr}
+
+% --- Theorem-like environments from OLD report (adapted for article class) ---
+\usepackage{chngcntr}
+\declaretheorem[style = plain]{theorem}
+\counterwithout{theorem}{section} % Reset numbering for article class
+\declaretheorem[style = plain, sibling = theorem]{corollary}
+\declaretheorem[style = plain, sibling = theorem]{lemma}
+\declaretheorem[style = plain, sibling = theorem]{proposition}
+\declaretheorem[style = definition, sibling = theorem]{definition}
+\declaretheorem[style = definition, sibling = theorem]{example}
+\declaretheorem[style = remark, numbered = no]{remark}
+
+% --- Delimiters and Operators from OLD report ---
+\DeclarePairedDelimiter{\p}{\lparen}{\rparen}    % Parenthesis
+\DeclarePairedDelimiter{\set}{\lbrace}{\rbrace} % Set
+\DeclarePairedDelimiter{\abs}{\lvert}{\rvert}   % Absolute value
+\DeclarePairedDelimiter{\norm}{\lVert}{\rVert}  % Norm
+\newcommand{\diff}{\mathop{}\!\mathrm{d}}
+\DeclareMathOperator{\im}{im}
+\DeclareMathOperator{\rank}{rank}
+\DeclareMathOperator{\E}{E}
+\DeclareMathOperator{\Var}{Var}
+\DeclareMathOperator{\Cov}{Cov}
+\newcommand{\N}{\mathbb{N}}    % Natural numbers
+\newcommand{\Z}{\mathbb{Z}}    % Integers
+\newcommand{\Q}{\mathbb{Q}}    % Rational numbers
+\newcommand{\R}{\mathbb{R}}    % Real numbers
+\newcommand{\C}{\mathbb{C}}    % Complex numbers
+\newcommand{\A}{\mathbb{A}}    % Affine space
+\renewcommand{\P}{\mathbb{P}} % Projective space
+\renewcommand{\qedsymbol}{\(\blacksquare\)}
+
+% --- Bibliography from OLD report (using standard LaTeX style) ---
+\usepackage{url}
+% \usepackage[numbers]{natbib} % For citation commands if needed (though not used in content)
+% --- User Details from OLD report ---
+\title{Discrete Event Simulation: Foundations and Implementation}
+\author{Prince Kumar, Roll No. - 230051013}
+\newcommand{\supervisorname}{Dr. Shashank Gupta}
+
+% --- NEW template settings ---
+\setlength{\parindent}{2em}
+\makeatletter\let\Title\@title\makeatother
+
+\newlist{steps}{enumerate}{1}
+\setlist[steps, 1]{leftmargin=1.5cm,label = Step \arabic*:}
+\renewcommand{\headrulewidth}{1pt}
+\renewcommand{\footrulewidth}{1pt}
+\renewcommand{\rmdefault}{ptm}
+
+\pagestyle{fancy}
+\fancyhf{}
+\rhead{\nouppercase{\rightmark}}
+\lhead{\Title}
+\setlength\headheight{16pt}
+\setlength{\footskip}{50pt}
+\cfoot{\thepage}
+
+% --- Content Formatting: Mimic old report's headings where possible ---
+\titleformat{\section}{\large\bfseries\sffamily\raggedright}{\thesection}{1em}{}
+\titleformat{\subsection}{\large\bfseries\sffamily\raggedright}{\thesubsection}{1em}{}
+\titleformat{\subsubsection}{\normalsize\bfseries\sffamily\raggedright}{\thesubsubsection}{1em}{}
+
+% --- END NEW template settings ---
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%%%% The titlepage  %%%%%%%%%%%%
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+
+\begin{document}
+
+\pagenumbering{roman} 
+
+\input{sources/0_frontpage.tex}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%% Abstract (Template Content) %%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{abstract}
+    \noindent
+    This weekly report documents the progress made in Week 2 of the quantum key distribution (QKD) network simulation project. The primary focus during this week was completing the Discrete Event Simulation (DES) tutorial from the Sequence framework documentation. The tutorial provided a comprehensive foundation in event-driven simulation principles through practical implementation of a Store class. The report covers the key concepts learned, including Timeline management, Event scheduling, Process handling, and logging mechanisms within the Sequence framework. These foundational concepts are essential for building the subsequent components of the QKD network simulation.
+\end{abstract}
+\newpage
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%% Table of Contents %%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\addcontentsline{toc}{section}{Table of Contents}
+\renewcommand{\baselinestretch}{1}\normalsize
+\tableofcontents
+\renewcommand{\baselinestretch}{1}\normalsize
+\thispagestyle{fancy}
+\newpage
+
+\pagenumbering{arabic}
+\doublespacing
+\thispagestyle{fancy}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%% Content %%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\section{Introduction}
+
+This report documents the second week of the quantum key distribution (QKD) network simulation project. As outlined in the previous week's recommendations, the focus of this week was to gain a comprehensive understanding of Discrete Event Simulation (DES) systems through the official Sequence framework tutorial. DES is a fundamental paradigm for simulating systems where events occur at discrete points in time, and the state of the system changes only in response to these events. This understanding is critical for implementing the QKD network simulation, which will rely heavily on event-driven architecture.
+
+\section{Activities and Findings}
+
+\subsection{Discrete Event Simulation Overview}
+
+The Discrete Event Simulation tutorial from the Sequence framework provided a practical introduction to event-driven programming. The tutorial demonstrated how to build a simple but realistic simulation system using the core components of the Sequence kernel.
+
+\subsubsection{Core Components}
+
+The DES implementation in Sequence relies on several key components:
+
+\begin{itemize}
+    \item \textbf{Timeline:} The Timeline class manages the simulation time and maintains a queue of scheduled events. It acts as the central coordinator for the entire simulation.
+    \item \textbf{Event:} An Event represents an occurrence at a specific point in simulation time. Each event contains a timestamp and a process to be executed.
+    \item \textbf{Process:} A Process encapsulates a function call with its associated arguments. Processes are executed when their corresponding events are triggered.
+\end{itemize}
+
+\subsection{Practical Implementation: Store Class}
+
+The tutorial provided a practical example through the implementation of a Store class that simulates a retail store opening and closing operations. The implementation evolved through several stages of increasing complexity and functionality.
+
+\subsubsection{Basic Store Implementation}
+
+The initial implementation established the foundation:
+
+\begin{lstlisting}[language=Python, breaklines=true]
+from sequence.kernel.timeline import Timeline
+
+class Store(object):
+    def __init__(self, tl: Timeline):
+        self.opening = False
+        self.timeline = tl
+
+    def open(self) -> None:
+        self.opening = True
+
+    def close(self) -> None:
+        self.opening = False
+\end{lstlisting}
+
+The basic Store class maintains an \texttt{opening} state and provides methods to transition between open and closed states. The Timeline object provides access to simulation time and scheduling capabilities.
+
+\subsubsection{Event Scheduling}
+
+The tutorial demonstrated how to schedule events on the Timeline:
+
+\begin{lstlisting}[language=Python, breaklines=true]
+from sequence.kernel.event import Event
+from sequence.kernel.process import Process
+
+tl = Timeline()
+store = Store(tl)
+
+# Create and schedule an opening event at time 7
+open_proc = Process(store, 'open', [])
+open_event = Event(7, open_proc)
+tl.schedule(open_event)
+
+# Run the simulation
+tl.run()
+print(tl.now(), store.opening)  # Output: 7 True
+\end{lstlisting}
+
+This demonstrates the basic workflow: create a Timeline, instantiate objects, create processes that reference methods on those objects, wrap processes in events with specific timestamps, schedule events, and run the simulation.
+
+\subsubsection{Automated Event Scheduling}
+
+The tutorial progressed to a more sophisticated implementation where events schedule subsequent events automatically:
+
+\begin{lstlisting}[language=Python, breaklines=true]
+class Store:
+    def __init__(self, tl: Timeline):
+        self.opening = False
+        self.timeline = tl
+
+    def open(self) -> None:
+        self.opening = True
+        # Schedule closing 12 time units from now
+        process = Process(self, 'close', [])
+        event = Event(self.timeline.now() + 12, process)
+        self.timeline.schedule(event)
+
+    def close(self) -> None:
+        self.opening = False
+        # Schedule opening 12 time units from now
+        process = Process(self, 'open', [])
+        event = Event(self.timeline.now() + 12, process)
+        self.timeline.schedule(event)
+\end{lstlisting}
+
+This version demonstrates event-driven cascading, where each event triggers the scheduling of the next event, creating a continuous cycle of state transitions.
+
+\subsubsection{Timeline Termination}
+
+The tutorial also covered simulation control mechanisms using Timeline termination parameters:
+
+\begin{lstlisting}[language=Python, breaklines=true]
+tl = Timeline(60)  # Simulation ends at time 60
+tl.show_progress = False  # Disable progress bar
+store = Store(tl)
+process = Process(store, 'open', [])
+event = Event(7, process)
+tl.schedule(event)
+tl.run()
+\end{lstlisting}
+
+\subsubsection{Logging and Debugging}
+
+The final version integrated the Sequence logging framework for better visibility into simulation execution:
+
+\begin{lstlisting}[language=Python, breaklines=true]
+import sequence.utils.log as log
+
+class Store:
+    def __init__(self, tl: Timeline):
+        self.opening = False
+        self.timeline = tl
+
+    def open(self) -> None:
+        if self.timeline.now() >= 60:
+            self.timeline.stop()
+        
+        log.logger.info('Store being opened.')
+        if self.opening == True:
+            log.logger.warning('Store was already open.')
+
+        self.opening = True
+        process = Process(self, 'close', [])
+        event = Event(self.timeline.now() + 12, process)
+        self.timeline.schedule(event)
+
+    def close(self) -> None:
+        if self.timeline.now() >= 60:
+            self.timeline.stop()
+
+        log.logger.info('Store being closed.')
+        if self.opening == False:
+            log.logger.warning('Store was already closed.')
+
+        self.opening = False
+        process = Process(self, 'open', [])
+        event = Event(self.timeline.now() + 12, process)
+        self.timeline.schedule(event)
+\end{lstlisting}
+
+\section{Key Findings and Concepts}
+
+The Discrete Event Simulation tutorial provided several important insights:
+
+\begin{itemize}
+    \item \textbf{Timeline Management:} The Timeline class provides a robust mechanism for managing simulation time and event scheduling. It automatically processes events in chronological order, eliminating the need for manual time management.
+    
+    \item \textbf{Event Encapsulation:} By encapsulating state changes in discrete events, complex systems can be modeled as sequences of state transitions. This abstraction simplifies reasoning about system behavior.
+    
+    \item \textbf{Cascading Events:} Events can schedule subsequent events, enabling the creation of complex behavioral patterns without explicit control flow. This pattern is fundamental to discrete event simulation.
+    
+    \item \textbf{Simulation Time vs. Wall-Clock Time:} Simulation time (as tracked by the Timeline) is independent of wall-clock time, allowing simulations to run at arbitrary speeds.
+    
+    \item \textbf{Logging and Observability:} The Sequence framework provides built-in logging capabilities that are essential for understanding and debugging simulations. Logs are timestamped with simulation time, providing a clear record of events in chronological order.
+    
+    \item \textbf{State Validation:} The Store example demonstrated the importance of state validation through warnings when state transitions occur unexpectedly (e.g., attempting to open an already-open store).
+\end{itemize}
+
+\section{Implementation Artifacts}
+
+The DES tutorial implementation has been documented in the following files:
+
+\begin{itemize}
+    \item \textbf{des.ipynb:} A Jupyter notebook containing the complete DES tutorial with interactive examples and explanations.
+    
+    \item \textbf{des.py:} A standalone Python script implementation of the final Store class, suitable for execution outside the notebook environment. The script demonstrates proper logging configuration and simulation execution.
+\end{itemize}
+
+\section{Relevance to QKD Simulation}
+
+The Discrete Event Simulation concepts learned this week are directly applicable to the QKD network simulation:
+
+\begin{itemize}
+    \item \textbf{Network Events:} In the QKD simulation, network events such as photon transmission, reception, and measurement will be represented as discrete events on the Timeline.
+    
+    \item \textbf{Quantum State Management:} The quantum states at different nodes can be managed similarly to the Store's opening/closing state, with events triggering state transitions.
+    
+    \item \textbf{Timing Precision:} The Timeline's ability to handle events at precise simulation times is essential for accurately modeling quantum protocols with specific timing requirements.
+    
+    \item \textbf{Scalability:} The event-driven architecture demonstrated in the Store example scales naturally to complex systems with multiple nodes and interactions.
+\end{itemize}
+
+\section{Next Steps and Future Work}
+
+Based on the completion of the DES tutorial, the following activities are planned for the next phase:
+
+\begin{enumerate}
+    \item \textbf{Building a Ping-Pong Network System:} Implement a simple network topology where messages are exchanged between nodes (ping-pong pattern) to understand network simulation mechanics within the Sequence framework.
+    
+    \item \textbf{Quantum Component Integration:} Begin studying the Sequence framework's quantum components (quantum channels, quantum memories, etc.) for implementing quantum protocol simulations.
+    
+    \item \textbf{BBM92 Protocol Implementation:} Start development of the Bennet-Brassard-Mermin-92 (BBM92) quantum key distribution protocol using the DES foundations and network architecture learned to date.
+\end{enumerate}
+
+\section{Conclusion}
+
+Week 2 successfully established a comprehensive understanding of Discrete Event Simulation through the completion of the Sequence framework's DES tutorial. The tutorial provided both theoretical concepts and practical implementation experience through the Store class example. The mastery of Timeline management, event scheduling, process handling, and logging mechanisms provides a solid foundation for implementing the complex QKD network simulation. The concepts of cascading events, state management, and event-driven architecture are directly applicable to quantum protocol simulation. With this foundation in place, the project is well-positioned to proceed with implementing the basic network topology and subsequently the quantum key distribution protocols. The DES tutorial has confirmed that the Sequence framework is an appropriate choice for this project, providing all necessary tools for building sophisticated network simulations with quantum components.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%  List of References  %%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\newpage
+\addcontentsline{toc}{section}{References}
+\bibliography{document.bib}
+\bibliographystyle{ieeetr}
+
+\end{document}
