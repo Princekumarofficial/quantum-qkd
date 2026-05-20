@@ -130,8 +130,11 @@
 
 \pagestyle{fancy}
 \fancyhf{}
-\rhead{\nouppercase{\rightmark}}
-\lhead{\Title}
+% Use safe, conventional marks for article class: section -> left, subsection -> right
+\renewcommand{\sectionmark}[1]{\markboth{\thesection\ #1}{}}
+\renewcommand{\subsectionmark}[1]{\markright{\thesubsection\ #1}}
+\fancyhead[L]{\nouppercase{\leftmark}}
+\fancyhead[R]{\nouppercase{\rightmark}}
 \setlength\headheight{16pt}
 \setlength{\footskip}{50pt}
 \cfoot{\thepage}
@@ -164,7 +167,7 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \begin{abstract}
     \noindent
-    This weekly report documents the progress made in Week 2 of the quantum key distribution (QKD) network simulation project. The primary focus during this week was completing the Discrete Event Simulation (DES) tutorial from the Sequence framework documentation. The tutorial provided a comprehensive foundation in event-driven simulation principles through practical implementation of a Store class. The report covers the key concepts learned, including Timeline management, Event scheduling, Process handling, and logging mechanisms within the Sequence framework. These foundational concepts are essential for building the subsequent components of the QKD network simulation.
+    This weekly report documents the progress made in Week 2 of the quantum key distribution (QKD) network simulation project. The primary focus was mastering Discrete Event Simulation (DES) via the Sequence framework and exploring essential network components. Key milestones included implementing event-driven architectures—covering Timeline management, event scheduling, and process handling—and analyzing fundamental network building blocks such as Quantum/Classical Channels, object-oriented Protocols, and configurable Memory components. These foundational concepts establish the necessary architecture for the subsequent implementation of the QKD network simulation and the BBM92 protocol.
 \end{abstract}
 \newpage
 
@@ -189,7 +192,13 @@
 
 \section{Introduction}
 
-This report documents the second week of the quantum key distribution (QKD) network simulation project. As outlined in the previous week's recommendations, the focus of this week was to gain a comprehensive understanding of Discrete Event Simulation (DES) systems through the official Sequence framework tutorial. DES is a fundamental paradigm for simulating systems where events occur at discrete points in time, and the state of the system changes only in response to these events. This understanding is critical for implementing the QKD network simulation, which will rely heavily on event-driven architecture.
+This report documents the second week of the quantum key distribution (QKD) network simulation project. As outlined in the previous week's recommendations, the focus of this week was two-fold: (1) gaining a comprehensive understanding of Discrete Event Simulation (DES) systems through the official Sequence framework tutorial, and (2) exploring the core network components and protocols available in the Sequence framework for quantum network simulation.
+
+DES is a fundamental paradigm for simulating systems where events occur at discrete points in time, and the state of the system changes only in response to these events. This understanding is critical for implementing the QKD network simulation, which will rely heavily on event-driven architecture.
+
+Additionally, understanding the network components (channels, protocols, memory systems, and detectors) and the object-oriented architecture used to compose these components is essential for implementing the quantum network topology. The study of message enumeration patterns and protocol communication provides the tools needed to build reliable and maintainable quantum protocols.
+
+Together, these two areas provide the foundational knowledge required to progress toward implementing a functional QKD network simulation.
 
 \section{Activities and Findings}
 
@@ -335,9 +344,138 @@ class Store:
         self.timeline.schedule(event)
 \end{lstlisting}
 
-\section{Key Findings and Concepts}
+\subsection{Network Components and Protocols}
 
-The Discrete Event Simulation tutorial provided several important insights:
+Building upon the DES foundation, this week also involved studying and implementing network components within the Sequence framework. This included exploring the core building blocks necessary for simulating networked quantum systems: channels, protocols, memory systems, and message-based communication patterns.
+
+\subsubsection{Network Components Overview}
+
+The Sequence framework provides several fundamental components for network simulation:
+
+\begin{itemize}
+    \item \textbf{Memory:} Quantum memory components store quantum states with configurable parameters including fidelity, frequency, efficiency, coherence time, and wavelength.
+    
+    \item \textbf{Detector:} Detector components measure quantum states and trigger callbacks when measurements occur.
+    
+    \item \textbf{Channels:} Communication channels come in two types:
+    \begin{itemize}
+        \item \textbf{Quantum Channels:} Transmit quantum states (photons) between nodes with configurable attenuation and distance.
+        \item \textbf{Classical Channels:} Transmit classical messages between nodes for protocol coordination.
+    \end{itemize}
+\end{itemize}
+
+\subsubsection{Object-Oriented Protocol Architecture}
+
+The framework employs an object-oriented architecture where protocols inherit from a base Protocol class and are attached to Node objects:
+
+\begin{lstlisting}[language=Python, breaklines=true]
+from sequence.protocol import Protocol
+from sequence.topology.node import Node
+
+class PingProtocol(Protocol):
+    def __init__(self, owner: Node, name: str, other_name: str, other_node: str):
+        super().__init__(owner, name)
+        owner.protocols.append(self)
+        self.other_name = other_name
+        self.other_node = other_node
+
+    def init(self):
+        pass
+
+    def start(self):
+        # Protocol initialization and startup logic
+        pass
+
+    def received_message(self, src: str, message: Message):
+        # Handle incoming messages
+        pass
+\end{lstlisting}
+
+Each protocol handles its own initialization, startup, and message reception, enabling clean separation of concerns and modular protocol design.
+
+\subsubsection{Message Enumeration and Communication}
+
+Protocol communication is facilitated through a message-passing system with typed message enumerations:
+
+\begin{lstlisting}[language=Python, breaklines=true]
+from enum import Enum, auto
+from sequence.message import Message
+
+class MsgType(Enum):
+    PING = auto()
+    PONG = auto()
+
+# Sending a message
+new_msg = Message(MsgType.PING, self.other_name)
+self.owner.send_message(destination_node, new_msg)
+
+# Receiving and handling a message
+def received_message(self, src: str, message: Message):
+    if message.msg_type == MsgType.PING:
+        # Handle ping message
+        pass
+\end{lstlisting}
+
+Message types are defined as enumerations, providing type safety and clarity in protocol implementations. This pattern prevents message type confusion and makes protocol specifications more explicit and maintainable.
+
+\subsubsection{Practical Implementation: Ping-Pong Protocol}
+
+A practical ping-pong protocol was implemented to demonstrate protocol communication between two nodes over classical channels:
+
+\begin{lstlisting}[language=Python, breaklines=true]
+# Initialize timeline and nodes
+tl = Timeline(1e12)
+node1 = Node("node1", tl)
+node2 = Node("node2", tl)
+
+# Create classical channels for bidirectional communication
+cc0 = ClassicalChannel("cc0", tl, 1e3)
+cc1 = ClassicalChannel("cc1", tl, 1e3)
+cc0.set_ends(node1, node2.name)
+cc1.set_ends(node2, node1.name)
+
+# Attach protocols to nodes
+pingp = PingProtocol(node1, "pingp", "pongp", "node2")
+pongp = PongProtocol(node2, "pongp", "pingp", "node1")
+
+# Schedule initial event
+process = Process(pingp, "start", [])
+event = Event(0, process)
+tl.schedule(event)
+
+tl.init()
+tl.run()
+\end{lstlisting}
+
+\subsubsection{Quantum Hardware Example}
+
+The framework also enables implementation of quantum-specific components. An example implementation demonstrates quantum state transmission via photons:
+
+\begin{lstlisting}[language=Python, breaklines=true]
+class SenderNode(Node):
+    def __init__(self, name, timeline):
+        super().__init__(name, timeline)
+        memory_name = name + ".memory"
+        memory = Memory(memory_name, timeline, fidelity=1, frequency=0,
+                        efficiency=1, coherence_time=1, wavelength=500)
+        self.add_component(memory)
+        memory.add_receiver(self)
+        self.sender = Sender(self, memory_name)
+
+class ReceiverNode(Node):
+    def __init__(self, name, timeline):
+        super().__init__(name, timeline)
+        detector_name = name + ".detector"
+        detector = Detector(detector_name, timeline, efficiency=1)
+        self.add_component(detector)
+        self.set_first_component(detector_name)
+\end{lstlisting}
+
+\section{Key Findings \& Application to QKD}
+
+The week's work provided several important insights spanning both DES fundamentals and network simulation, and highlights how these apply to the QKD project:
+
+\subsection{Discrete Event Simulation}
 
 \begin{itemize}
     \item \textbf{Timeline Management:} The Timeline class provides a robust mechanism for managing simulation time and event scheduling. It automatically processes events in chronological order, eliminating the need for manual time management.
@@ -353,41 +491,68 @@ The Discrete Event Simulation tutorial provided several important insights:
     \item \textbf{State Validation:} The Store example demonstrated the importance of state validation through warnings when state transitions occur unexpectedly (e.g., attempting to open an already-open store).
 \end{itemize}
 
-\section{Implementation Artifacts}
-
-The DES tutorial implementation has been documented in the following files:
+\subsection{Network Components and Protocols}
 
 \begin{itemize}
-    \item \textbf{des.ipynb:} A Jupyter notebook containing the complete DES tutorial with interactive examples and explanations.
+    \item \textbf{Component Architecture:} The Sequence framework provides pre-built components (Memory, Detector, Channels) that can be configured with specific physical parameters, enabling realistic simulation of quantum hardware properties.
     
-    \item \textbf{des.py:} A standalone Python script implementation of the final Store class, suitable for execution outside the notebook environment. The script demonstrates proper logging configuration and simulation execution.
+    \item \textbf{Protocol Inheritance Model:} Protocols inherit from a base Protocol class and override key methods (init, start, received\_message), providing a clean and extensible architecture for implementing various quantum protocols.
+    
+    \item \textbf{Type-Safe Messaging:} Message types are defined as Enum classes, providing compile-time clarity and runtime type safety for protocol communication, preventing message misinterpretation.
+    
+    \item \textbf{Modular Component Composition:} Complex systems are built by composing simple components (Nodes with Memories, Detectors, and Protocols), enabling flexible system design and easy modification of individual components.
+    
+    \item \textbf{Channel Flexibility:} The distinction between Quantum and Classical channels enables separation of quantum state transmission from classical coordination messages, mirroring real quantum network architectures.
+    
+    \item \textbf{Parameterized Component Behavior:} Components can be configured with physical parameters (fidelity, coherence time, wavelength, attenuation), allowing simulations to explore the effects of realistic hardware limitations.
 \end{itemize}
+\subsection{Application to QKD Simulation}
 
-\section{Relevance to QKD Simulation}
-
-The Discrete Event Simulation concepts learned this week are directly applicable to the QKD network simulation:
+The Discrete Event Simulation concepts and network component patterns learned this week are directly applicable to the QKD network simulation:
 
 \begin{itemize}
     \item \textbf{Network Events:} In the QKD simulation, network events such as photon transmission, reception, and measurement will be represented as discrete events on the Timeline.
     
-    \item \textbf{Quantum State Management:} The quantum states at different nodes can be managed similarly to the Store's opening/closing state, with events triggering state transitions.
+    \item \textbf{Quantum State Management:} Quantum states at different nodes can be managed similarly to the Store's opening/closing state, with events triggering state transitions and processes coordinating actions across components.
     
     \item \textbf{Timing Precision:} The Timeline's ability to handle events at precise simulation times is essential for accurately modeling quantum protocols with specific timing requirements.
     
-    \item \textbf{Scalability:} The event-driven architecture demonstrated in the Store example scales naturally to complex systems with multiple nodes and interactions.
+    \item \textbf{Scalability:} The event-driven architecture demonstrated in the Store and component examples scales naturally to complex systems with multiple nodes and interactions.
+\end{itemize}
+
+\section{Implementation Artifacts}
+
+The work completed this week has been documented in the following files:
+
+\begin{itemize}
+    \item \textbf{DES Tutorial:}
+    \begin{itemize}
+        \item \textbf{des.ipynb:} A Jupyter notebook containing the complete DES tutorial with interactive examples and explanations.
+        
+        \item \textbf{des.py:} A standalone Python script implementation of the final Store class, suitable for execution outside the notebook environment. The script demonstrates proper logging configuration and simulation execution.
+    \end{itemize}
+    
+    \item \textbf{Network Components and Protocols:}
+    \begin{itemize}
+        \item \textbf{hardware.ipynb:} A Jupyter notebook containing exploratory implementations of network components, channels, and quantum hardware simulation examples.
+        
+        \item \textbf{hardware.py:} Implementation of quantum network simulation with Sender and Receiver nodes, demonstrating quantum state transmission and measurement via photon detectors.
+        
+        \item \textbf{pingpong.py:} Implementation of a ping-pong protocol demonstrating classical message exchange between nodes over bidirectional classical channels. This serves as a template for more complex protocol implementations.
+    \end{itemize}
 \end{itemize}
 
 \section{Next Steps and Future Work}
 
-Based on the completion of the DES tutorial, the following activities are planned for the next phase:
+In the next phase of our work, we will focus on \textbf{Chapter 3: Entanglement Management}.
 
-\begin{enumerate}
-    \item \textbf{Building a Ping-Pong Network System:} Implement a simple network topology where messages are exchanged between nodes (ping-pong pattern) to understand network simulation mechanics within the Sequence framework.
-    
-    \item \textbf{Quantum Component Integration:} Begin studying the Sequence framework's quantum components (quantum channels, quantum memories, etc.) for implementing quantum protocol simulations.
-    
-    \item \textbf{BBM92 Protocol Implementation:} Start development of the Bennet-Brassard-Mermin-92 (BBM92) quantum key distribution protocol using the DES foundations and network architecture learned to date.
-\end{enumerate}
+In previous chapters, we introduced the usage of hardware models. In this chapter, we will use protocols in the entanglement management module to control these hardware devices and change the entanglement state of quantum memories. We will also use a simple manager protocol to control the entanglement generation protocols. We will show:
+
+\begin{itemize}
+    \item How to use \texttt{EntanglementGenerationA} (by default creates Barret-Kok generation protocol) to entangle memories on different nodes.
+    \item How to use \texttt{BBPSSW} (BBPSSW purification protocol) to improve the fidelity of entanglement.
+    \item How to use \texttt{EntanglementSwappingA} and \texttt{EntanglementSwappingB} (swapping protocol) to extend the distance of entanglement.
+\end{itemize}
 
 \section{Conclusion}
 
