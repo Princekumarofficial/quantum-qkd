@@ -4,6 +4,8 @@ from sequence.components.memory import Memory
 from sequence.components.detector import Detector
 from sequence.kernel.process import Process
 from sequence.kernel.event import Event
+from sequence.kernel.timeline import Timeline
+from sequence.components.optical_channel import QuantumChannel
 import math
 
 class Counter:
@@ -59,7 +61,6 @@ class ReceiverNode(Node):
     def receive_qubit(self, src, qubit):
         self.components[self.first_component_name].get(qubit)
 
-from sequence.kernel.timeline import Timeline
 tl = Timeline(10e12)
 
 node1 = SenderNode("node1", tl)
@@ -67,7 +68,6 @@ node2 = ReceiverNode("node2", tl)
 node1.set_seed(0)
 node2.set_seed(1)
 
-from sequence.components.optical_channel import QuantumChannel
 qc = QuantumChannel("qc", tl, attenuation=0, distance=1e3)
 qc.set_ends(node1, node2.name)
 
