@@ -200,10 +200,13 @@ def calculate_qber(key_a, key_b, percent_key=15):
     errors = sum(1 for i in sample_indices if key_a[i] != key_b[i])
     return errors / sample_size
 
+def show_keys(key_a, key_b):
+    print("Alice's key:", ''.join(str(bit) for bit in key_a))
+    print("Bob's key:  ", ''.join(str(bit) for bit in key_b))
 
 def start_hardware():
     # Hardware-like simulation parameters
-    NUM_TRIALS = 200
+    NUM_TRIALS = 100
     FREQUENCY = 100  # Hz
 
     period = int(1e12 / FREQUENCY)
@@ -277,7 +280,7 @@ def start_hardware():
     # sifting
     key_a = []
     key_b = []
-    for i in range(NUM_TRIALS):
+    for i in TRIALS.keys():
         info = TRIALS.get(i, {})
         if info.get('alice_basis') is None or info.get('bob_basis') is None:
             continue
@@ -297,6 +300,7 @@ def start_hardware():
         qber = calculate_qber(key_a, key_b)
         print(f'Estimated QBER: {qber*100:.2f}%')
         log.logger.info(f'Total trials: {NUM_TRIALS} Sifted: {total} Agreement: {agree}/{total} ({100*agree/total:.2f}%)')
+        show_keys(key_a, key_b)
 
 if __name__ == "__main__":
     # Run the hardware-mode simulation once by default
