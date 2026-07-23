@@ -2,21 +2,88 @@ import React, { useState, useEffect, useRef } from 'react';
 import { 
   Play, Pause, RotateCcw, Settings, Plus, Trash2, 
   Layers, Info, Check, AlertTriangle, Activity, 
-  Terminal, ShieldAlert, Cpu, Network, Sliders, Map as MapIcon, Image as ImageIcon
+  Terminal, ShieldAlert, Cpu, Network, Sliders, Map as MapIcon, Image as ImageIcon,
+  Sparkles, Shield, Repeat, Zap, Compass, Radio, Target
 } from 'lucide-react';
 import 'leaflet/dist/leaflet.css';
 import { MapContainer, TileLayer, Marker, Popup, Polyline, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import './App.css';
 
-const customIcon = new L.Icon({
-  iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
-  iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
-  shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
-  iconSize: [25, 41],
-  iconAnchor: [12, 41],
-  popupAnchor: [1, -34],
-});
+// Central Registry for Node Types, Meaningful Colors, Symbols & Descriptions
+const NODE_TYPES = {
+  endpoint: {
+    type: 'endpoint',
+    label: 'Endpoint Node (Alice / Bob)',
+    shortName: 'ENDPOINT',
+    color: '#06b6d4', // Cyan
+    bgGradient: 'linear-gradient(135deg, #0284c7 0%, #06b6d4 100%)',
+    glowColor: 'rgba(6, 182, 212, 0.7)',
+    shape: 'shield',
+    description: 'QKD terminal equipped with polarization state measurement detectors & sifting engine.',
+    svgIconHtml: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><circle cx="12" cy="10" r="2.5"/><path d="M12 12.5v4"/></svg>`
+  },
+  source: {
+    type: 'source',
+    label: 'SPDC Photon Source',
+    shortName: 'SPDC SOURCE',
+    color: '#f59e0b', // Amber / Gold
+    bgGradient: 'linear-gradient(135deg, #d97706 0%, #f59e0b 100%)',
+    glowColor: 'rgba(245, 158, 11, 0.8)',
+    shape: 'sunburst',
+    description: 'Entangled photon pair generator (Pump laser + non-linear BBO crystal).',
+    svgIconHtml: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/><circle cx="12" cy="12" r="3" fill="#ffffff" fill-opacity="0.4"/></svg>`
+  },
+  transceiver: {
+    type: 'transceiver',
+    label: 'Quantum Transceiver / Relay',
+    shortName: 'TRANSCEIVER',
+    color: '#a855f7', // Violet Purple
+    bgGradient: 'linear-gradient(135deg, #7e22ce 0%, #a855f7 100%)',
+    glowColor: 'rgba(168, 85, 247, 0.8)',
+    shape: 'repeater',
+    description: 'Trusted relay node with dual optical detectors & key sifting re-encryption buffer.',
+    svgIconHtml: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 2l4 4-4 4"/><path d="M3 11v-1a4 4 0 0 1 4-4h14"/><path d="M7 22l-4-4 4-4"/><path d="M21 13v1a4 4 0 0 1-4 4H3"/></svg>`
+  },
+  bsm: {
+    type: 'bsm',
+    label: 'Bell State Measurement (BSM)',
+    shortName: 'BSM NODE',
+    color: '#ec4899', // Pink Magenta
+    bgGradient: 'linear-gradient(135deg, #be185d 0%, #ec4899 100%)',
+    glowColor: 'rgba(236, 72, 153, 0.8)',
+    shape: 'crosshair',
+    description: 'Bell State Measurement station for entanglement swapping & teleportation.',
+    svgIconHtml: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>`
+  }
+};
+
+// Dynamic Leaflet Marker Icon Factory
+const createCustomNodeIcon = (node, isSelected = false) => {
+  const meta = NODE_TYPES[node.type] || NODE_TYPES.endpoint;
+  const selectedClass = isSelected ? 'marker-selected' : '';
+  
+  const html = `
+    <div class="custom-leaflet-marker ${selectedClass} shape-${meta.shape}" style="--node-color: ${meta.color}; --node-gradient: ${meta.bgGradient}; --node-glow: ${meta.glowColor}">
+      <div class="marker-glow-ring"></div>
+      <div class="marker-badge-icon">
+        ${meta.svgIconHtml}
+      </div>
+      <div class="marker-label-tag">
+        <span class="tag-title-text">${node.id.toUpperCase()}</span>
+        <span class="tag-type-badge" style="color: ${meta.color}; background: ${meta.color}22;">${meta.shortName}</span>
+      </div>
+    </div>
+  `;
+
+  return L.divIcon({
+    html: html,
+    className: 'custom-leaflet-div-wrapper',
+    iconSize: [44, 44],
+    iconAnchor: [22, 22],
+    popupAnchor: [0, -26]
+  });
+};
 
 // Default base configurations
 const INITIAL_NODES_BASIC = [
@@ -76,6 +143,8 @@ const INITIAL_NODES_SCALED = [
     type: 'source', 
     x: 280, 
     y: 120,
+    lat: 22.9,
+    lng: 76.2,
     components: [
       { id: 'spdc_source_1', name: 'TaggedSPDCSource A', type: 'SPDCSource', mean_photon_num: 10.0, frequency: 100 }
     ]
@@ -86,6 +155,8 @@ const INITIAL_NODES_SCALED = [
     type: 'source', 
     x: 520, 
     y: 120,
+    lat: 23.2,
+    lng: 77.0,
     components: [
       { id: 'spdc_source_2', name: 'TaggedSPDCSource B', type: 'SPDCSource', mean_photon_num: 10.0, frequency: 100 }
     ]
@@ -96,6 +167,8 @@ const INITIAL_NODES_SCALED = [
     type: 'endpoint', 
     x: 120, 
     y: 240,
+    lat: 22.7196, 
+    lng: 75.8577, // Indore
     components: [
       { id: 'alice_tap', name: 'PhotonTap', type: 'PhotonTap' },
       { id: 'alice_det', name: 'QSDetectorPolarization', type: 'QSDetectorPolarization', efficiency: 0.95, dark_count: 1e-6 },
@@ -108,6 +181,8 @@ const INITIAL_NODES_SCALED = [
     type: 'transceiver', 
     x: 400, 
     y: 240,
+    lat: 23.05, 
+    lng: 76.6,
     components: [
       { id: 'tr_tap_a', name: 'PhotonTap Left', type: 'PhotonTap' },
       { id: 'tr_det_a', name: 'QSDetectorPolarization Left', type: 'QSDetectorPolarization', efficiency: 0.95, dark_count: 1e-6 },
@@ -123,6 +198,8 @@ const INITIAL_NODES_SCALED = [
     type: 'endpoint', 
     x: 680, 
     y: 240,
+    lat: 23.2599, 
+    lng: 77.4126, // Bhopal
     components: [
       { id: 'bob_tap', name: 'PhotonTap', type: 'PhotonTap' },
       { id: 'bob_det', name: 'QSDetectorPolarization', type: 'QSDetectorPolarization', efficiency: 0.95, dark_count: 1e-6 },
@@ -138,11 +215,26 @@ const INITIAL_CHANNELS_SCALED = [
   { id: 'qch_b2', name: 'qch_src2_bob', type: 'quantum', src: 'source_2', dst: 'bob', distance: 500, attenuation: 0.0002, fidelity: 0.95 },
   { id: 'cc_at', name: 'cc_alice_tr', type: 'classical', src: 'alice', dst: 'transceiver', delay: 2.5e-6 },
   { id: 'cc_tb', name: 'cc_tr_bob', type: 'classical', src: 'transceiver', dst: 'bob', delay: 2.5e-6 }
+
 ];
+
+// Helper to trigger map.invalidateSize() when switching view modes
+function MapResizeHandler() {
+  const map = useMap();
+  useEffect(() => {
+    map.invalidateSize();
+    const timer = setTimeout(() => {
+      map.invalidateSize();
+    }, 150);
+    return () => clearTimeout(timer);
+  }, [map]);
+  return null;
+}
 
 function App() {
   const [topologyType, setTopologyType] = useState('basic'); // 'basic' | 'scaled'
   const [viewMode, setViewMode] = useState('abstract'); // 'abstract' | 'map'
+  const [legendOpen, setLegendOpen] = useState(true);
   const [nodes, setNodes] = useState(INITIAL_NODES_BASIC);
   const [channels, setChannels] = useState(INITIAL_CHANNELS_BASIC);
   const [selectedNodeId, setSelectedNodeId] = useState('alice');
@@ -451,10 +543,28 @@ function App() {
         { id: `ep_det_${index}`, name: 'QSDetectorPolarization', type: 'QSDetectorPolarization', efficiency: 0.95, dark_count: 1e-6 },
         { id: `ep_sift_${index}`, name: 'SiftingProtocol', type: 'SiftingProtocol' }
       ];
+    } else if (type === 'transceiver') {
+      newNode.name = `Quantum Transceiver ${index}`;
+      newNode.type = 'transceiver';
+      newNode.components = [
+        { id: `tr_tap_${index}`, name: 'PhotonTap', type: 'PhotonTap' },
+        { id: `tr_det_${index}`, name: 'QSDetectorPolarization', type: 'QSDetectorPolarization', efficiency: 0.95, dark_count: 1e-6 },
+        { id: `tr_mem_${index}`, name: 'MemoryArray', type: 'MemoryArray', num_memories: 10, fidelity: 0.98 }
+      ];
     }
 
     setNodes(prev => [...prev, newNode]);
     addLog(`Added ${type.toUpperCase()} node`, 'success');
+  };
+
+  const handleNodeTypeChange = (nodeId, newType) => {
+    setNodes(prevNodes => prevNodes.map(node => {
+      if (node.id === nodeId) {
+        return { ...node, type: newType };
+      }
+      return node;
+    }));
+    addLog(`Updated node ${nodeId} type to ${newType.toUpperCase()}`, 'warning');
   };
 
   // Add a new node (e.g. transceiver) dynamically from the UI
@@ -932,14 +1042,17 @@ function App() {
               Add components to build a custom quantum network topology.
             </p>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              <button className="btn-secondary" onClick={() => handleAddDynamicNode('endpoint')} style={{ justifyContent: 'flex-start' }}>
+                <Shield size={16} style={{ color: '#06b6d4' }} /> Add Endpoint Node
+              </button>
               <button className="btn-secondary" onClick={() => handleAddDynamicNode('source')} style={{ justifyContent: 'flex-start' }}>
-                <Plus size={16} /> Add SPDC Source
+                <Sparkles size={16} style={{ color: '#f59e0b' }} /> Add SPDC Source
+              </button>
+              <button className="btn-secondary" onClick={() => handleAddDynamicNode('transceiver')} style={{ justifyContent: 'flex-start' }}>
+                <Repeat size={16} style={{ color: '#a855f7' }} /> Add Transceiver Relay
               </button>
               <button className="btn-secondary" onClick={() => handleAddDynamicNode('bsm')} style={{ justifyContent: 'flex-start' }}>
-                <Plus size={16} /> Add BSM Node
-              </button>
-              <button className="btn-secondary" onClick={() => handleAddDynamicNode('endpoint')} style={{ justifyContent: 'flex-start' }}>
-                <Plus size={16} /> Add Endpoint Node
+                <Zap size={16} style={{ color: '#ec4899' }} /> Add BSM Station
               </button>
             </div>
             
@@ -1036,35 +1149,54 @@ function App() {
                     {/* Nodes */}
                     {nodes.map(node => {
                       const isSelected = selectedNodeId === node.id || drawSrcId === node.id;
-                      let colorAccent = 'var(--color-quantum)';
-                      if (node.type === 'source') colorAccent = 'var(--color-accent)';
-                      if (node.type === 'transceiver') colorAccent = '#a855f7';
-                      if (node.type === 'bsm') colorAccent = '#ec4899';
+                      const meta = NODE_TYPES[node.type] || NODE_TYPES.endpoint;
 
                       return (
                         <g 
                           key={node.id} 
                           className={`node-group ${isSelected ? 'selected' : ''}`}
-                          transform={`translate(${node.x - 50}, ${node.y - 35})`}
+                          transform={`translate(${node.x - 60}, ${node.y - 40})`}
                           onMouseDown={(e) => handleNodeClick(node.id)}
                         >
-                          {/* Node Card */}
+                          {/* Node Card Container */}
                           <rect
-                            width="100"
-                            height="70"
+                            width="120"
+                            height="80"
+                            rx="10"
                             className="node-rect"
-                            style={isSelected ? { stroke: colorAccent } : {}}
+                            style={{
+                              stroke: isSelected ? meta.color : 'var(--border-color)',
+                              filter: isSelected ? `drop-shadow(0 0 10px ${meta.color})` : 'none'
+                            }}
                           />
-                          {/* Node Icon/Visual decoration */}
-                          <circle
-                            cx="20"
-                            cy="22"
-                            r="5"
-                            fill={colorAccent}
+                          
+                          {/* Header Bar Accent Fill */}
+                          <rect
+                            width="120"
+                            height="28"
+                            rx="10"
+                            fill={meta.color}
+                            opacity="0.18"
                           />
-                          <text x="50" y="42" className="node-text-title">{node.id.toUpperCase()}</text>
-                          <text x="50" y="58" className="node-text-sub">
-                            {node.type.toUpperCase()}
+                          <line x1="0" y1="28" x2="120" y2="28" stroke={meta.color} opacity="0.3" strokeWidth="1" />
+
+                          {/* Node Type Symbol Icon Swatch */}
+                          <g transform="translate(10, 6)">
+                            <rect width="16" height="16" rx="4" fill={meta.color} />
+                            <g transform="translate(1, 1)" color="#ffffff">
+                              <circle cx="7" cy="7" r="4" fill="#ffffff" fillOpacity="0.2" />
+                            </g>
+                          </g>
+
+                          {/* Title & Type Badge */}
+                          <text x="34" y="18" fill="#ffffff" fontSize="11" fontWeight="bold" textAnchor="start">
+                            {node.id.toUpperCase()}
+                          </text>
+                          <text x="60" y="48" fill={meta.color} fontSize="11" fontWeight="bold" textAnchor="middle">
+                            {meta.shortName}
+                          </text>
+                          <text x="60" y="65" fill="var(--text-muted)" fontSize="9" textAnchor="middle">
+                            {node.name.length > 20 ? node.name.substring(0, 18) + '...' : node.name}
                           </text>
                         </g>
                       );
@@ -1072,8 +1204,9 @@ function App() {
                   </svg>
                 </div>
               ) : (
-                <div className="canvas-viewport" style={{ padding: 0 }}>
+                <div className="canvas-viewport" style={{ padding: 0, position: 'relative' }}>
                   <MapContainer center={[23.0, 76.5]} zoom={7} style={{ height: '100%', width: '100%', minHeight: '380px', borderRadius: '0 0 12px 12px' }}>
+                    <MapResizeHandler />
                     <TileLayer
                       url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
                       attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
@@ -1096,22 +1229,22 @@ function App() {
                           color={isQuantum ? '#06b6d4' : '#f59e0b'}
                           weight={isQuantum ? 3 : 2}
                           dashArray={isQuantum ? null : "5, 5"}
-                          opacity={0.8}
+                          opacity={0.85}
                         >
                           <Popup>
                             <strong>{ch.name}</strong><br/>
-                            {isQuantum ? `Distance: ${Math.round(ch.distance)}m` : `Delay: ${ch.delay.toExponential(2)}s`}
+                            {isQuantum ? `Quantum Channel: Distance ${Math.round(ch.distance)}m` : `Classical Channel: Delay ${ch.delay.toExponential(2)}s`}
                           </Popup>
                         </Polyline>
                       );
                     })}
 
-                    {/* Render Nodes as Markers */}
+                    {/* Render Dynamic Colored Node Markers with Icons */}
                     {nodes.filter(n => n.lat && n.lng).map(node => (
                       <Marker 
                         key={node.id}
                         position={[node.lat, node.lng]}
-                        icon={customIcon}
+                        icon={createCustomNodeIcon(node, selectedNodeId === node.id)}
                         draggable={true}
                         eventHandlers={{
                           dragend: (e) => handleMarkerDragEnd(node.id, e),
@@ -1119,12 +1252,60 @@ function App() {
                         }}
                       >
                         <Popup>
-                          <strong>{node.name}</strong><br/>
-                          {node.type.toUpperCase()}
+                          <div style={{ textAlign: 'center' }}>
+                            <strong style={{ fontSize: '13px', color: NODE_TYPES[node.type]?.color }}>{node.name}</strong><br/>
+                            <span style={{ fontSize: '10px', padding: '2px 6px', background: `${NODE_TYPES[node.type]?.color}22`, color: NODE_TYPES[node.type]?.color, borderRadius: '4px', display: 'inline-block', marginTop: '4px' }}>
+                              {NODE_TYPES[node.type]?.label}
+                            </span>
+                            <p style={{ fontSize: '11px', color: '#64748b', margin: '6px 0 0 0' }}>
+                              {NODE_TYPES[node.type]?.description}
+                            </p>
+                          </div>
                         </Popup>
                       </Marker>
                     ))}
                   </MapContainer>
+
+                  {/* Floating Map Legend Overlay */}
+                  <div className="map-legend-panel">
+                    <div className="legend-title-row" onClick={() => setLegendOpen(!legendOpen)}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <Layers size={14} className="title-cyan" />
+                        <strong style={{ fontSize: '12px' }}>Map Node & Symbol Legend</strong>
+                      </div>
+                      <span style={{ fontSize: '10px', color: 'var(--text-muted)' }}>{legendOpen ? '▼' : '▲'}</span>
+                    </div>
+                    {legendOpen && (
+                      <div className="legend-content">
+                        {Object.values(NODE_TYPES).map(meta => (
+                          <div key={meta.type} className="legend-row">
+                            <div className={`legend-icon-swatch shape-${meta.shape}`} style={{ background: meta.bgGradient, boxShadow: `0 0 8px ${meta.glowColor}` }}>
+                              <span dangerouslySetInnerHTML={{ __html: meta.svgIconHtml }} />
+                            </div>
+                            <div className="legend-info">
+                              <span className="legend-name" style={{ color: meta.color }}>{meta.label}</span>
+                              <span className="legend-desc">{meta.description}</span>
+                            </div>
+                          </div>
+                        ))}
+                        <div className="legend-divider"></div>
+                        <div className="legend-row">
+                          <div className="legend-line-swatch quantum"></div>
+                          <div className="legend-info">
+                            <span className="legend-name" style={{ color: 'var(--color-quantum)' }}>Quantum Fiber Link</span>
+                            <span className="legend-desc">Photonic quantum state channel (SPDC outputs & qubits)</span>
+                          </div>
+                        </div>
+                        <div className="legend-row">
+                          <div className="legend-line-swatch classical"></div>
+                          <div className="legend-info">
+                            <span className="legend-name" style={{ color: 'var(--color-classical)' }}>Classical Control Link</span>
+                            <span className="legend-desc">Classical sifting protocol & basis match communication</span>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 </div>
               )}
             </div>
@@ -1138,16 +1319,43 @@ function App() {
                     Node Inspector
                   </h2>
                   {selectedNode && (
-                    <span className="component-type">{selectedNode.type.toUpperCase()}</span>
+                    <span className="component-type" style={{ background: `${NODE_TYPES[selectedNode.type]?.color}22`, color: NODE_TYPES[selectedNode.type]?.color, fontWeight: 'bold' }}>
+                      {NODE_TYPES[selectedNode.type]?.shortName}
+                    </span>
                   )}
                 </div>
 
                 {selectedNode ? (
                   <div className="inspector-body">
                     <div>
-                      <h3 style={{ margin: '0 0 4px 0', fontSize: '15px' }}>{selectedNode.name}</h3>
+                      <h3 style={{ margin: '0 0 4px 0', fontSize: '15px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <span style={{ display: 'inline-block', width: '10px', height: '10px', borderRadius: '50%', background: NODE_TYPES[selectedNode.type]?.color }}></span>
+                        {selectedNode.name}
+                      </h3>
                       <p style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
                         Manage internal optical modules. Edit values to update simulation bounds.
+                      </p>
+                    </div>
+
+                    {/* Node Role & Symbol Selector */}
+                    <div className="form-group" style={{ marginBottom: '12px', background: 'rgba(255, 255, 255, 0.02)', padding: '10px', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
+                      <label style={{ fontSize: '11px', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px' }}>
+                        <Settings size={12} className="title-cyan" /> Assign Node Type & Map Symbol
+                      </label>
+                      <select 
+                        className="form-input"
+                        value={selectedNode.type}
+                        onChange={(e) => handleNodeTypeChange(selectedNode.id, e.target.value)}
+                        style={{ borderColor: NODE_TYPES[selectedNode.type]?.color || 'var(--border-color)', fontWeight: 'bold', color: NODE_TYPES[selectedNode.type]?.color }}
+                      >
+                        {Object.values(NODE_TYPES).map(meta => (
+                          <option key={meta.type} value={meta.type} style={{ background: 'var(--bg-secondary)', color: '#fff' }}>
+                            {meta.label}
+                          </option>
+                        ))}
+                      </select>
+                      <p style={{ fontSize: '10px', color: NODE_TYPES[selectedNode.type]?.color || 'var(--text-muted)', margin: '6px 0 0 0', fontStyle: 'italic', lineHeight: '1.3' }}>
+                        {NODE_TYPES[selectedNode.type]?.description}
                       </p>
                     </div>
 
@@ -1157,22 +1365,66 @@ function App() {
                         {selectedNode.type === 'source' ? (
                           <>
                             {/* SPDC Laser crystal emitter diagram */}
-                            <rect x="20" y="80" width="40" height="20" fill="#1e293b" stroke="#64748b" rx="2" />
-                            <text x="40" y="93" fill="#94a3b8" fontSize="8" textAnchor="middle">LASER</text>
+                            <rect x="20" y="80" width="45" height="20" fill="#1e293b" stroke="#64748b" rx="3" />
+                            <text x="42" y="93" fill="#f59e0b" fontSize="8" textAnchor="middle" fontWeight="bold">LASER</text>
                             
                             {/* Laser pump beam */}
-                            <line x1="60" y1="90" x2="140" y2="90" stroke="#ef4444" strokeWidth="2.5" />
+                            <line x1="65" y1="90" x2="140" y2="90" stroke="#f59e0b" strokeWidth="2.5" strokeDasharray="3 2" />
                             
-                            {/* SPDC crystal */}
-                            <polygon points="140,70 170,80 170,100 140,110" fill="#3b82f6" opacity="0.6" stroke="#60a5fa" />
+                            {/* SPDC non-linear crystal */}
+                            <polygon points="140,70 170,80 170,100 140,110" fill="#f59e0b" opacity="0.4" stroke="#fbbf24" strokeWidth="1.5" />
                             <text x="155" y="93" fill="#fff" fontSize="9" textAnchor="middle" fontWeight="bold">BBO</text>
 
                             {/* Split entangled outputs */}
-                            <line x1="170" y1="85" x2="280" y2="50" className="internal-beam" />
-                            <line x1="170" y1="95" x2="280" y2="130" className="internal-beam" />
+                            <line x1="170" y1="85" x2="280" y2="50" className="internal-beam" stroke="#06b6d4" />
+                            <line x1="170" y1="95" x2="280" y2="130" className="internal-beam" stroke="#8b5cf6" />
                             
-                            <text x="250" y="40" fill="var(--color-quantum)" fontSize="8">Alice Qubit</text>
-                            <text x="250" y="145" fill="var(--color-accent)" fontSize="8">Bob Qubit</text>
+                            <text x="250" y="40" fill="#06b6d4" fontSize="8" fontWeight="bold">Photons A</text>
+                            <text x="250" y="145" fill="#8b5cf6" fontSize="8" fontWeight="bold">Photons B</text>
+                          </>
+                        ) : selectedNode.type === 'transceiver' ? (
+                          <>
+                            {/* Transceiver Relay Diagram */}
+                            <line x1="15" y1="90" x2="80" y2="90" stroke="#06b6d4" strokeWidth="2" />
+                            <text x="35" y="80" fill="#06b6d4" fontSize="8">Qubit In (L1)</text>
+
+                            {/* Left Detector Array */}
+                            <rect x="80" y="70" width="35" height="40" fill="#1e293b" stroke="#a855f7" rx="3" />
+                            <text x="97" y="93" fill="#a855f7" fontSize="8" textAnchor="middle" fontWeight="bold">DET 1</text>
+
+                            {/* Quantum Memory / Relay Controller */}
+                            <rect x="135" y="60" width="50" height="60" fill="#1e293b" stroke="#a855f7" strokeWidth="2" rx="4" />
+                            <text x="160" y="88" fill="#fff" fontSize="8" textAnchor="middle" fontWeight="bold">MEMORY</text>
+                            <text x="160" y="102" fill="#a855f7" fontSize="7" textAnchor="middle">RELAY</text>
+
+                            {/* Right Detector Array */}
+                            <rect x="205" y="70" width="35" height="40" fill="#1e293b" stroke="#a855f7" rx="3" />
+                            <text x="222" y="93" fill="#a855f7" fontSize="8" textAnchor="middle" fontWeight="bold">DET 2</text>
+
+                            <line x1="240" y1="90" x2="285" y2="90" stroke="#3b82f6" strokeWidth="2" />
+                            <text x="260" y="80" fill="#3b82f6" fontSize="8">Qubit Out (L2)</text>
+                          </>
+                        ) : selectedNode.type === 'bsm' ? (
+                          <>
+                            {/* Bell State Measurement Diagram */}
+                            <line x1="20" y1="50" x2="130" y2="90" stroke="#06b6d4" strokeWidth="2" />
+                            <line x1="20" y1="130" x2="130" y2="90" stroke="#8b5cf6" strokeWidth="2" />
+                            <text x="40" y="42" fill="#06b6d4" fontSize="8">Arm 1</text>
+                            <text x="40" y="142" fill="#8b5cf6" fontSize="8">Arm 2</text>
+
+                            {/* 50:50 Beam Splitter */}
+                            <polygon points="120,75 150,90 120,105" fill="#ec4899" opacity="0.6" stroke="#f43f5e" />
+                            <text x="133" y="93" fill="#fff" fontSize="7" textAnchor="middle" fontWeight="bold">BS</text>
+
+                            {/* 4 SPAD Detectors */}
+                            <rect x="210" y="25" width="40" height="20" fill="#1e293b" stroke="#ec4899" rx="2" />
+                            <text x="230" y="38" fill="#ec4899" fontSize="8" textAnchor="middle">SPAD 1</text>
+                            <rect x="210" y="60" width="40" height="20" fill="#1e293b" stroke="#ec4899" rx="2" />
+                            <text x="230" y="73" fill="#ec4899" fontSize="8" textAnchor="middle">SPAD 2</text>
+                            <rect x="210" y="95" width="40" height="20" fill="#1e293b" stroke="#ec4899" rx="2" />
+                            <text x="230" y="108" fill="#ec4899" fontSize="8" textAnchor="middle">SPAD 3</text>
+                            <rect x="210" y="130" width="40" height="20" fill="#1e293b" stroke="#ec4899" rx="2" />
+                            <text x="230" y="143" fill="#ec4899" fontSize="8" textAnchor="middle">SPAD 4</text>
                           </>
                         ) : (
                           <>
@@ -1185,7 +1437,7 @@ function App() {
                             <text x="70" y="93" fill="#fff" fontSize="8" textAnchor="middle">TAP</text>
 
                             {/* Polarizer / Beam splitter */}
-                            <polygon points="110,75 140,90 110,105" fill="#f59e0b" opacity="0.6" stroke="#fbbf24" />
+                            <polygon points="110,75 140,90 110,105" fill="#06b6d4" opacity="0.6" stroke="#38bdf8" />
                             <text x="122" y="93" fill="#000" fontSize="7" textAnchor="middle" fontWeight="bold">PBS</text>
 
                             {/* Horizontal and Vertical components */}
@@ -1193,11 +1445,11 @@ function App() {
                             <line x1="125" y1="90" x2="220" y2="140" className="internal-beam internal-beam-v" />
 
                             {/* Detectors */}
-                            <rect x="220" y="25" width="30" height="25" fill="#1e293b" stroke="#22c55e" rx="3" />
-                            <text x="235" y="40" fill="#22c55e" fontSize="8" textAnchor="middle">DET H</text>
+                            <rect x="220" y="25" width="35" height="25" fill="#1e293b" stroke="#22c55e" rx="3" />
+                            <text x="237" y="40" fill="#22c55e" fontSize="8" textAnchor="middle">DET H</text>
 
-                            <rect x="220" y="125" width="30" height="25" fill="#1e293b" stroke="#3b82f6" rx="3" />
-                            <text x="235" y="140" fill="#3b82f6" fontSize="8" textAnchor="middle">DET V</text>
+                            <rect x="220" y="125" width="35" height="25" fill="#1e293b" stroke="#3b82f6" rx="3" />
+                            <text x="237" y="140" fill="#3b82f6" fontSize="8" textAnchor="middle">DET V</text>
                           </>
                         )}
                       </svg>

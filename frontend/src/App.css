@@ -564,3 +564,246 @@
   box-shadow: 0 4px 12px rgba(0,0,0,0.5);
   font-size: 14px;
 }
+
+/* Custom Leaflet Node Markers */
+.custom-leaflet-div-wrapper {
+  background: transparent !important;
+  border: none !important;
+}
+
+.custom-leaflet-marker {
+  position: relative;
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: transform 0.2s ease, filter 0.2s ease;
+}
+
+.custom-leaflet-marker:hover {
+  transform: scale(1.18);
+  z-index: 1000 !important;
+}
+
+.custom-leaflet-marker.marker-selected {
+  transform: scale(1.25);
+  z-index: 1001 !important;
+}
+
+/* Pulsing Glow Ring */
+.marker-glow-ring {
+  position: absolute;
+  top: -4px;
+  left: -4px;
+  right: -4px;
+  bottom: -4px;
+  border-radius: 50%;
+  border: 2px solid var(--node-color);
+  background: transparent;
+  opacity: 0.6;
+  animation: marker-pulse-anim 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@keyframes marker-pulse-anim {
+  0% {
+    transform: scale(0.9);
+    box-shadow: 0 0 0 0 var(--node-glow);
+    opacity: 0.9;
+  }
+  70% {
+    transform: scale(1.35);
+    box-shadow: 0 0 18px 8px rgba(0, 0, 0, 0);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(1.35);
+    box-shadow: 0 0 0 0 rgba(0, 0, 0, 0);
+    opacity: 0;
+  }
+}
+
+/* Shape variants for marker badges */
+.marker-badge-icon {
+  width: 36px;
+  height: 36px;
+  background: var(--node-gradient);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #ffffff;
+  box-shadow: 0 4px 14px var(--node-glow), inset 0 1px 1px rgba(255, 255, 255, 0.4);
+  z-index: 2;
+  transition: all 0.2s ease;
+}
+
+.shape-shield .marker-badge-icon {
+  border-radius: 8px 8px 16px 16px;
+  clip-path: polygon(0% 0%, 100% 0%, 100% 70%, 50% 100%, 0% 70%);
+}
+
+.shape-sunburst .marker-badge-icon {
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.4);
+}
+
+.shape-repeater .marker-badge-icon {
+  border-radius: 8px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+}
+
+.shape-crosshair .marker-badge-icon {
+  border-radius: 6px;
+  transform: rotate(45deg);
+}
+
+.shape-crosshair .marker-badge-icon > svg {
+  transform: rotate(-45deg);
+}
+
+/* Attached Label Tag below marker */
+.marker-label-tag {
+  position: absolute;
+  top: 42px;
+  left: 50%;
+  transform: translateX(-50%);
+  white-space: nowrap;
+  background: rgba(10, 12, 16, 0.88);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid var(--border-color);
+  padding: 3px 8px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.6);
+  pointer-events: none;
+  z-index: 3;
+}
+
+.tag-title-text {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--text-bright);
+  letter-spacing: 0.5px;
+}
+
+.tag-type-badge {
+  font-size: 9px;
+  font-weight: 700;
+  padding: 1px 4px;
+  border-radius: 3px;
+  text-transform: uppercase;
+}
+
+/* Map Legend Overlay */
+.map-legend-panel {
+  position: absolute;
+  bottom: 24px;
+  left: 24px;
+  z-index: 1000;
+  width: 280px;
+  background: rgba(10, 12, 16, 0.88);
+  backdrop-filter: blur(16px);
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+  padding: 10px 14px;
+  transition: all 0.3s ease;
+}
+
+.legend-title-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  cursor: pointer;
+  user-select: none;
+  color: var(--text-bright);
+}
+
+.legend-content {
+  margin-top: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--border-color);
+}
+
+.legend-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.legend-icon-swatch {
+  width: 26px;
+  height: 26px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  flex-shrink: 0;
+}
+
+.legend-icon-swatch.shape-shield {
+  border-radius: 4px 4px 10px 10px;
+}
+
+.legend-icon-swatch.shape-sunburst {
+  border-radius: 50%;
+}
+
+.legend-icon-swatch.shape-crosshair {
+  transform: rotate(45deg);
+  border-radius: 3px;
+}
+
+.legend-icon-swatch.shape-crosshair > span {
+  transform: rotate(-45deg);
+}
+
+.legend-info {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.legend-name {
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.legend-desc {
+  font-size: 9px;
+  color: var(--text-muted);
+  line-height: 1.2;
+}
+
+.legend-divider {
+  height: 1px;
+  background: var(--border-color);
+  margin: 4px 0;
+}
+
+.legend-line-swatch {
+  width: 26px;
+  height: 3px;
+  border-radius: 2px;
+  margin-top: 5px;
+  flex-shrink: 0;
+}
+
+.legend-line-swatch.quantum {
+  background: var(--color-quantum);
+  box-shadow: 0 0 6px var(--color-quantum);
+}
+
+.legend-line-swatch.classical {
+  background: var(--color-classical);
+  border: 1px dashed var(--color-classical);
+}
+
