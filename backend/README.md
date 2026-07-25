@@ -1,4 +1,4 @@
-# SeQUeNCe QKD Multi-Hop Network Backend (`main.py`)
+# ChaQra - Quantum Network Simulator Backend (`main.py`)
 
 This README provides a detailed technical reference for the backend service of the Quantum Key Distribution (QKD) simulator, located in [backend/main.py](file:///c:/Users/xprin/Desktop/quantum-qkd/backend/main.py). 
 

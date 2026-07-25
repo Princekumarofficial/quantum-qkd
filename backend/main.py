@@ -29,7 +29,7 @@ from sequence.resource_management.rule_manager import RuleManager, Rule
 from sequence.entanglement_management.generation import EntanglementGenerationA
 from sequence.entanglement_management.swapping import EntanglementSwappingA, EntanglementSwappingB
 
-app = FastAPI(title="SeQUeNCe QKD — Multi-hop Network Backend")
+app = FastAPI(title="ChaQra — Quantum Network Simulator Backend")
 
 app.add_middleware(
     CORSMiddleware,

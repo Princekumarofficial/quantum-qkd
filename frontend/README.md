@@ -1,16 +1,16 @@
-# React + Vite
+# ChaQra - Quantum Network Simulator Frontend
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Interactive React + Vite frontend UI for **ChaQra - Quantum Network Simulator**.
 
-Currently, two official plugins are available:
+## Features
+- Dynamic drag-and-drop network topology editor (Endpoints, SPDC Sources, Repeater Nodes, BSM Stations).
+- Real-time photon propagation animations and step-by-step trial logging.
+- GIS Map view (Leaflet) and Abstract Schematic topology view.
+- Configurable hardware components (`MemoryArray`, `QSDetectorPolarization`, `SPDCSource`) and lossy fiber channels (attenuation, distance, fidelity, delay).
+- Full compatibility with the FastAPI backend for single-hop BBM92 and multi-hop quantum repeater simulations.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
-
-## React Compiler
-
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+## Development
+```bash
+npm install
+npm run dev
+```

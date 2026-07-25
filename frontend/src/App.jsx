@@ -714,7 +714,7 @@ function App() {
       return;
     }
 
-    addLog('Requesting SeQUeNCe backend simulation...', 'info');
+    addLog('Requesting ChaQra backend simulation...', 'info');
     try {
       const backendUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
       const response = await fetch(`${backendUrl}/api/simulate`, {
@@ -794,7 +794,7 @@ function App() {
         <div>
           <h1>
             <Network className="title-cyan" size={30} />
-            SeQUeNCe BBM92 Quantum Sim
+            ChaQra - Quantum Network Simulator
             <span className="protocol-tag">Entanglement Swapping QKD</span>
           </h1>
           <p style={{ margin: '4px 0 0 0', color: 'var(--text-muted)', fontSize: '13px' }}>
