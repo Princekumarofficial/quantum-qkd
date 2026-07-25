@@ -551,7 +551,12 @@ def run_simulation(config: SimulationConfig):
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@app.get("/api/health")
+@app.api_route("/", methods=["GET", "HEAD"])
+def root():
+    return {"status": "ok", "service": "ChaQra Quantum Network Simulator"}
+
+
+@app.api_route("/api/health", methods=["GET", "HEAD", "POST"])
 def health():
     return {"status": "ok", "mode": "multi-hop quantum network"}
 
