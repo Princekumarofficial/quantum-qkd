@@ -7,10 +7,8 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
-# Ensure workspace folders are in Python path
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
-# Import sequence components
 from sequence.kernel.timeline import Timeline
 from sequence.kernel.process import Process
 from sequence.kernel.event import Event
@@ -24,9 +22,8 @@ from sequence.components.light_source import SPDCSource
 from sequence.components.optical_channel import ClassicalChannel, QuantumChannel
 from sequence.utils.encoding import polarization
 
-app = FastAPI(title="SeQUeNCe QKD simulation backend")
+app = FastAPI(title="SeQUeNCe QKD — Multi-hop Network Backend")
 
-# Enable CORS for frontend
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -35,7 +32,8 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Request Models
+# ─── Request Models ────────────────────────────────────────────────────────────
+
 class ComponentConfig(BaseModel):
     id: str
     name: str
@@ -62,15 +60,23 @@ class ChannelConfig(BaseModel):
     fidelity: Optional[float] = 0.95
     delay: Optional[float] = 1e-6
 
+class SelectedPair(BaseModel):
+    alice: Optional[str] = None
+    bob: Optional[str] = None
+
 class SimulationConfig(BaseModel):
     numTrials: int
     nodes: List[NodeConfig]
     channels: List[ChannelConfig]
+    selectedPair: Optional[SelectedPair] = None
 
-# Custom Simulation classes to collect data from SeQUeNCe execution
-SIMULATION_TRIALS = {}
+# ─── Shared Simulation State ───────────────────────────────────────────────────
+SIMULATION_TRIALS: Dict[int, Dict] = {}
+
+# ─── SeQUeNCe Protocol Classes ────────────────────────────────────────────────
 
 class TrackedSPDCSource(SPDCSource):
+    """SPDC source that stamps photons with trial index for tracking."""
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self._trial_index = 0
@@ -85,112 +91,220 @@ class TrackedSPDCSource(SPDCSource):
 
         ph_alice, ph_bob = photons
         qch_a, qch_b = self.channels
-
         if qch_a and qch_b:
-            process_a = Process(self.owner, 'send_qubit', [qch_a.receiver, ph_alice])
-            process_b = Process(self.owner, 'send_qubit', [qch_b.receiver, ph_bob])
-            self.timeline.schedule(Event(int(round(time)), process_a))
-            self.timeline.schedule(Event(int(round(time)), process_b))
+            self.timeline.schedule(Event(int(round(time)), Process(self.owner, 'send_qubit', [qch_a.receiver, ph_alice])))
+            self.timeline.schedule(Event(int(round(time)), Process(self.owner, 'send_qubit', [qch_b.receiver, ph_bob])))
 
 
 class SimParticipantProtocol(Protocol):
+    """Measurement protocol for any endpoint or repeater node.
+    
+    Stores results keyed by node ID so the post-processor can look up any node pair.
+    """
     def __init__(self, owner: Node, name: str, seed: int):
         super().__init__(owner, name)
         owner.protocols.append(self)
         self.rng = random.Random(seed)
+        self.node_id = owner.name  # Use actual node ID
+
         self.qsdet = QSDetectorPolarization(owner.name + '.qsdet', owner.timeline)
         owner.add_component(self.qsdet)
         self.qsdet.init()
 
+        proto_ref = self
+
         class PhotonTap(Entity):
-            def __init__(self, name: str, timeline: Timeline, proto: SimParticipantProtocol, detector: QSDetectorPolarization):
+            def __init__(self, name, timeline):
                 super().__init__(name, timeline)
-                self.proto = proto
-                self.detector = detector
-
-            def init(self):
-                pass
-
+            def init(self): pass
             def get(self, photon, **kwargs):
                 msg = Message(1, None)
                 msg.payload = {'trial': getattr(photon, 'trial', None), 'photon': photon}
                 try:
-                    self.proto.received_message(self.owner.name, msg)
+                    proto_ref.received_message(self.owner.name, msg)
                 except Exception:
                     pass
                 try:
-                    self.detector.get(photon)
+                    proto_ref.qsdet.get(photon)
                 except Exception:
                     pass
 
-        tap = PhotonTap(owner.name + '.tap', owner.timeline, self, self.qsdet)
+        tap = PhotonTap(owner.name + '.tap', owner.timeline)
         owner.add_component(tap)
         owner.set_first_component(tap.name)
 
     def received_message(self, src: str, msg: Message):
-        trial = msg.payload['trial']
+        trial = msg.payload.get('trial')
         photon = msg.payload.get('photon')
+        if trial is None:
+            return
+
         basis = self.rng.randrange(2)
-        role = 'alice' if 'alice' in self.owner.name.lower() else 'bob'
-
         info = SIMULATION_TRIALS.setdefault(trial, {})
-        info[f'{role}_basis'] = basis
-        info[f'{role}_node'] = self.owner.name
 
-        # Call detector to collapse state synchronously
+        # Store by node ID (not role) — supports any alice/bob selection
+        info[f'{self.node_id}_basis'] = basis
+        info[f'{self.node_id}_node'] = self.node_id
+
         try:
             self.qsdet.get(photon, src=src)
         except Exception:
             pass
 
         basis_mat = polarization['bases'][basis]
-        
         try:
             res = Photon.measure(basis_mat, photon, self.rng)
         except Exception:
             res = self.rng.randrange(2)
 
-        info[f'{role}_result'] = res
+        info[f'{self.node_id}_result'] = res
 
 
 class SimBSMProtocol(Protocol):
+    """Bell State Measurement protocol for BSM-type nodes."""
     def __init__(self, owner: Node, name: str, seed: int):
         super().__init__(owner, name)
         owner.protocols.append(self)
         self.rng = random.Random(seed)
-        
+        proto_ref = self
+
         class PhotonTapBSM(Entity):
-            def __init__(self, name: str, timeline: Timeline, proto):
+            def __init__(self, name, timeline):
                 super().__init__(name, timeline)
-                self.proto = proto
-
             def init(self): pass
-
             def get(self, photon, **kwargs):
                 msg = Message(1, None)
                 msg.payload = {'trial': getattr(photon, 'trial', None), 'photon': photon}
                 try:
-                    self.proto.received_message(self.owner.name, msg)
+                    proto_ref.received_message(self.owner.name, msg)
                 except Exception:
                     pass
 
-        self.tap = PhotonTapBSM(owner.name + '.tap', owner.timeline, self)
-        owner.add_component(self.tap)
-        owner.set_first_component(self.tap.name)
+        tap = PhotonTapBSM(owner.name + '.tap', owner.timeline)
+        owner.add_component(tap)
+        owner.set_first_component(tap.name)
 
     def received_message(self, src: str, msg: Message):
-        trial = msg.payload['trial']
+        trial = msg.payload.get('trial')
+        if trial is None:
+            return
         info = SIMULATION_TRIALS.setdefault(trial, {})
-        
         count = info.get('bsm_photon_count', 0)
         info['bsm_photon_count'] = count + 1
-        
-        # Bell state measurement requires 2 photons
         if info['bsm_photon_count'] == 2:
-            # 0: Phi+, 1: Phi-, 2: Psi+, 3: Psi-
-            bell_state = self.rng.randrange(4)
-            info['bsm_result'] = bell_state
+            info['bsm_result'] = self.rng.randrange(4)  # 0=Φ+ 1=Φ- 2=Ψ+ 3=Ψ-
 
+
+# ─── Pure Python Multi-hop Physics Simulation ─────────────────────────────────
+
+def _find_path_bfs(start_id: str, end_id: str, channels: List[ChannelConfig]) -> Optional[List[str]]:
+    """BFS path finder on the quantum channel graph."""
+    adj: Dict[str, List[str]] = {}
+    for ch in channels:
+        if ch.type == 'quantum':
+            adj.setdefault(ch.src, []).append(ch.dst)
+            adj.setdefault(ch.dst, []).append(ch.src)
+
+    visited = {start_id}
+    queue = [(start_id, [start_id])]
+    while queue:
+        curr, path = queue.pop(0)
+        if curr == end_id:
+            return path
+        for nxt in adj.get(curr, []):
+            if nxt not in visited:
+                visited.add(nxt)
+                queue.append((nxt, path + [nxt]))
+    return None
+
+
+def _simulate_chain(path: List[str], channels: List[ChannelConfig], rng: random.Random):
+    """Simulate photon survival along a multi-hop path."""
+    ch_map: Dict[str, ChannelConfig] = {}
+    for ch in channels:
+        if ch.type == 'quantum':
+            ch_map[f"{ch.src}_{ch.dst}"] = ch
+            ch_map[f"{ch.dst}_{ch.src}"] = ch
+
+    survived = True
+    fidelity = 1.0
+
+    for i in range(len(path) - 1):
+        key = f"{path[i]}_{path[i+1]}"
+        ch = ch_map.get(key)
+        if not ch:
+            return False, 0.0
+
+        # Beer-Lambert transmission
+        att_db = (ch.attenuation or 0.0002) * (ch.distance or 1000.0)
+        transmissivity = 10 ** (-att_db / 10.0)
+        if rng.random() > transmissivity:
+            return False, 0.0
+
+        fidelity *= (ch.fidelity or 0.95)
+
+        # BSM entanglement swapping at intermediate nodes
+        # intermediate = not the source hop (i > 0) AND not the last hop (i < len-2)
+        is_intermediate = 0 < i < len(path) - 2
+        if is_intermediate:
+            bsm_eff = 0.84  # Realistic BSM efficiency
+            if rng.random() > bsm_eff:
+                return False, 0.0
+            fidelity *= 0.98  # Swapping fidelity penalty
+
+    return survived, fidelity
+
+
+def _run_multihop_simulation(
+    alice_path: List[str],
+    bob_path: List[str],
+    channels: List[ChannelConfig],
+    num_trials: int,
+) -> List[Dict]:
+    """Full pure-Python multi-hop entanglement simulation."""
+    rng = random.Random()
+    results = []
+
+    for i in range(num_trials):
+        surv_a, fid_a = _simulate_chain(alice_path, channels, rng)
+        surv_b, fid_b = _simulate_chain(bob_path, channels, rng)
+
+        basis_a = rng.randrange(2)
+        basis_b = rng.randrange(2)
+
+        res_a, res_b = None, None
+        if surv_a and surv_b:
+            base_val = rng.randrange(2)
+            res_a = base_val
+            res_b = base_val
+            # Fidelity-induced bit-flip errors
+            if rng.random() > fid_a:
+                res_a = 1 - res_a
+            if rng.random() > fid_b:
+                res_b = 1 - res_b
+            # Basis mismatch → uncorrelated
+            if basis_a != basis_b:
+                res_b = rng.randrange(2)
+        elif surv_a:
+            res_a = rng.randrange(2)
+        elif surv_b:
+            res_b = rng.randrange(2)
+
+        results.append({
+            "trial": i,
+            "alice_basis": basis_a,
+            "bob_basis": basis_b,
+            "alice_result": res_a,
+            "bob_result": res_b,
+            "lossA": not surv_a,
+            "lossB": not surv_b,
+            "hops": (len(alice_path) - 1) + (len(bob_path) - 1),
+        })
+
+    return results
+
+
+# ─── Simulation Endpoint ───────────────────────────────────────────────────────
 
 @app.post("/api/simulate")
 def run_simulation(config: SimulationConfig):
@@ -198,171 +312,208 @@ def run_simulation(config: SimulationConfig):
     SIMULATION_TRIALS.clear()
 
     try:
-        # Create timeline
+        # ── Determine Alice and Bob ──────────────────────────────────────────
+        alice_id = config.selectedPair.alice if config.selectedPair else None
+        bob_id = config.selectedPair.bob if config.selectedPair else None
+
+        # Fallback: look for nodes named alice/bob
+        if not alice_id or not bob_id:
+            ep_nodes = [n for n in config.nodes if n.type == "endpoint"]
+            if len(ep_nodes) >= 2:
+                fallback_a = next((n for n in ep_nodes if 'alice' in n.id.lower()), ep_nodes[0])
+                fallback_b = next((n for n in ep_nodes if 'bob' in n.id.lower()), ep_nodes[1])
+                alice_id = alice_id or fallback_a.id
+                bob_id = bob_id or fallback_b.id
+
+        if not alice_id or not bob_id:
+            raise HTTPException(status_code=400, detail="Cannot determine Alice/Bob nodes. Provide selectedPair or at least two endpoint nodes.")
+
+        # ── Path Discovery ────────────────────────────────────────────────────
+        source_nodes = [n for n in config.nodes if n.type == "source"]
+        alice_path = None
+        bob_path = None
+        source_id = None
+
+        for src in source_nodes:
+            pa = _find_path_bfs(src.id, alice_id, config.channels)
+            pb = _find_path_bfs(src.id, bob_id, config.channels)
+            if pa and pb:
+                alice_path = pa
+                bob_path = pb
+                source_id = src.id
+                break
+
+        is_multihop = alice_path is not None and (len(alice_path) > 2 or len(bob_path) > 2)
+        is_direct = alice_path is not None and len(alice_path) <= 2 and len(bob_path) <= 2
+
+        sim_logs = [
+            f"Alice: {alice_id}  Bob: {bob_id}",
+            f"Source: {source_id or 'not found'}",
+        ]
+
+        # ── Multi-hop: Pure Python simulation ────────────────────────────────
+        if alice_path and bob_path:
+            sim_logs.append(f"Alice path: {' → '.join(alice_path)}  ({len(alice_path)-1} hops)")
+            sim_logs.append(f"Bob path: {' → '.join(bob_path)}  ({len(bob_path)-1} hops)")
+            sim_logs.append("Running multi-hop entanglement swapping simulation…")
+
+            trials_result = _run_multihop_simulation(alice_path, bob_path, config.channels, config.numTrials)
+
+            sifted_alice, sifted_bob, errors = [], [], 0
+            for t in trials_result:
+                if t['alice_result'] is not None and t['bob_result'] is not None:
+                    if t['alice_basis'] == t['bob_basis']:
+                        sifted_alice.append(t['alice_result'])
+                        sifted_bob.append(t['bob_result'])
+                        if t['alice_result'] != t['bob_result']:
+                            errors += 1
+
+            total = len(sifted_alice)
+            qber = (errors / total * 100) if total > 0 else 0.0
+
+            sim_logs.append(f"Sifted key length: {total} bits")
+            sim_logs.append(f"QBER: {qber:.2f}%")
+            sim_logs.append(f"Entanglement swapping path: {alice_path} ↔ {bob_path}")
+
+            return {
+                "trials": trials_result,
+                "logs": sim_logs,
+                "siftedKeyAlice": "".join(str(b) for b in sifted_alice),
+                "siftedKeyBob": "".join(str(b) for b in sifted_bob),
+                "qber": qber,
+                "alicePath": alice_path,
+                "bobPath": bob_path,
+            }
+
+        # ── Direct / No-path: SeQUeNCe simulation ────────────────────────────
+        sim_logs.append("Direct topology — using SeQUeNCe discrete-event simulation…")
         tl = Timeline()
         frequency = 100
         period = int(1e12 / frequency)
 
-        # 1. Create nodes dynamically
         nodes_map = {}
         for n_conf in config.nodes:
-            node = Node(n_conf.id, tl)
-            nodes_map[n_conf.id] = node
+            nodes_map[n_conf.id] = Node(n_conf.id, tl)
 
-        # Find sources and endpoints
-        sources = [n for n in config.nodes if n.type == "source"]
-        endpoints = [n for n in config.nodes if n.type == "endpoint"]
-        transceivers = [n for n in config.nodes if n.type == "transceiver"]
+        # Set up participant protocols for alice and bob
+        for node_id in [alice_id, bob_id]:
+            n_conf = next((n for n in config.nodes if n.id == node_id), None)
+            if n_conf and node_id in nodes_map:
+                SimParticipantProtocol(nodes_map[node_id], f"{node_id}_proto", seed=random.randint(0, 9999))
 
-        if not sources or not endpoints:
-            raise HTTPException(status_code=400, detail="Topology must contain at least one source and endpoints.")
+        # Set up BSM nodes
+        for n_conf in config.nodes:
+            if n_conf.type == "bsm" and n_conf.id in nodes_map:
+                SimBSMProtocol(nodes_map[n_conf.id], f"{n_conf.id}_proto", seed=random.randint(0, 9999))
 
-        # Configure endpoints
-        for ep in endpoints:
-            node = nodes_map[ep.id]
-            # Attach hardware participant protocol
-            SimParticipantProtocol(node, f"{ep.id}_proto", seed=random.randint(0, 1000))
-
-        # Setup transceivers as endpoint listeners too
-        for tr in transceivers:
-            node = nodes_map[tr.id]
-            SimParticipantProtocol(node, f"{tr.id}_proto", seed=random.randint(0, 1000))
-            
-        # Setup BSM nodes
-        bsms = [n for n in config.nodes if n.type == "bsm"]
-        for bsm in bsms:
-            node = nodes_map[bsm.id]
-            SimBSMProtocol(node, f"{bsm.id}_proto", seed=random.randint(0, 1000))
-
-        # Configure sources
+        # Set up sources
         sources_list = []
-        for src_conf in sources:
+        for src_conf in [n for n in config.nodes if n.type == "source"]:
             node = nodes_map[src_conf.id]
-            spdc_conf = next((c for c in src_conf.components if c.type == "SPDCSource"), None)
-            mean_photons = spdc_conf.mean_photon_num if spdc_conf else 10.0
-            
-            src = TrackedSPDCSource(
-                f"{src_conf.id}_src", tl, 
-                frequency=frequency, 
-                mean_photon_num=mean_photons, 
-                encoding_type=polarization
-            )
+            spdc_c = next((c for c in src_conf.components if c.type == "SPDCSource"), None)
+            mpn = spdc_c.mean_photon_num if spdc_c else 10.0
+            src = TrackedSPDCSource(f"{src_conf.id}_src", tl, frequency=frequency, mean_photon_num=mpn, encoding_type=polarization)
             src.owner = node
             node.add_component(src)
             sources_list.append((src_conf.id, src))
 
-        # 2. Add Channels
+        # Add channels
         qch_list = []
         for ch in config.channels:
+            if ch.src not in nodes_map or ch.dst not in nodes_map:
+                continue
             if ch.type == "quantum":
-                # Only connect if both ends exist
-                if ch.src in nodes_map and ch.dst in nodes_map:
-                    qch = QuantumChannel(
-                        ch.id, tl, 
-                        attenuation=ch.attenuation, 
-                        distance=ch.distance, 
-                        polarization_fidelity=ch.fidelity,
-                        frequency=frequency
-                    )
-                    qch.set_ends(nodes_map[ch.src], ch.dst)
-                    qch_list.append(qch)
+                qch = QuantumChannel(ch.id, tl, attenuation=ch.attenuation, distance=ch.distance,
+                                     polarization_fidelity=ch.fidelity, frequency=frequency)
+                qch.set_ends(nodes_map[ch.src], ch.dst)
+                qch_list.append(qch)
             else:
-                if ch.src in nodes_map and ch.dst in nodes_map:
-                    cc = ClassicalChannel(ch.id, tl, distance=ch.distance, delay=ch.delay)
-                    cc.set_ends(nodes_map[ch.src], ch.dst)
+                cc = ClassicalChannel(ch.id, tl, distance=ch.distance, delay=ch.delay)
+                cc.set_ends(nodes_map[ch.src], ch.dst)
 
-        # Connect SPDC channels dynamically based on routing
+        # Wire sources to their quantum channels
         for src_id, src_obj in sources_list:
-            src_channels = [qch for qch in qch_list if qch.sender.name == src_id]
-            # Bind up to 2 quantum channels to the source
-            if len(src_channels) > 0:
+            src_channels = [q for q in qch_list if q.sender.name == src_id]
+            if len(src_channels) >= 1:
                 src_obj.channels = tuple(src_channels[:2])
                 for ch in src_channels[:2]:
-                    recv_node = nodes_map[ch.receiver]
-                    # Find receiver tap component name
-                    comp_name = recv_node.first_component_name if hasattr(recv_node, 'first_component_name') else list(recv_node.components.keys())[0]
-                    src_obj.add_receiver(recv_node.components[comp_name])
+                    recv_node = nodes_map.get(ch.receiver)
+                    if recv_node and recv_node.first_component_name:
+                        comp_name = recv_node.first_component_name
+                        src_obj.add_receiver(recv_node.components[comp_name])
 
-        # 3. Schedule and run simulation
         tl.init()
-        _bell_amp = msqrt(0.5)
+        bell_amp = msqrt(0.5)
         for _, src_obj in sources_list:
-            src_obj.emit([(complex(_bell_amp), complex(_bell_amp))] * config.numTrials)
-
+            src_obj.emit([(complex(bell_amp), complex(bell_amp))] * config.numTrials)
         tl.run()
 
-        # 4. Process and format sifting results
-        sim_logs = []
-        trials_result = []
-        sifted_alice = []
-        sifted_bob = []
-        errors = 0
-
-        sim_logs.append("Initializing SeQUeNCe Timeline.")
-        sim_logs.append("Quantum and Classical nodes registered.")
-        sim_logs.append("Beginning entangled photon pair distribution.")
-
+        # Post-process
+        trials_result, sifted_alice, sifted_bob, errors = [], [], [], 0
         for i in range(config.numTrials):
             info = SIMULATION_TRIALS.get(i, {})
-            alice_b = info.get("alice_basis")
-            bob_b = info.get("bob_basis")
-            alice_r = info.get("alice_result")
-            bob_r = info.get("bob_result")
-            
-            survived_a = alice_r is not None
-            survived_b = bob_r is not None
+            alice_b = info.get(f'{alice_id}_basis')
+            bob_b = info.get(f'{bob_id}_basis')
+            alice_r = info.get(f'{alice_id}_result')
+            bob_r = info.get(f'{bob_id}_result')
 
-            # Check BSM status for entanglement swapping
+            surv_a = alice_r is not None
+            surv_b = bob_r is not None
+
+            # BSM correction for BSM nodes
             has_bsm = any(n.type == "bsm" for n in config.nodes)
-            bsm_success = False
+            bsm_ok = False
             if has_bsm:
                 if info.get('bsm_photon_count', 0) == 2 and 'bsm_result' in info:
-                    bsm_success = True
-                    # Entanglement swapping logic:
-                    # In a real setup, Alice and Bob apply Pauli operations based on BSM result.
-                    # Since we are emulating, we can enforce Bob's bit flip if BSM result is Phi- or Psi-
+                    bsm_ok = True
                     if info['bsm_result'] in [1, 3] and bob_r is not None:
                         bob_r = 1 - bob_r
                 else:
-                    # BSM failed to receive both photons, trial fails
-                    sim_logs.append(f"Trial {i+1}: Failed (BSM photon loss).")
+                    sim_logs.append(f"Trial {i+1}: BSM photon loss.")
                     continue
 
             trials_result.append({
                 "trial": i,
-                "alice_basis": alice_b if survived_a else random.randint(0, 1),
-                "bob_basis": bob_b if survived_b else random.randint(0, 1),
+                "alice_basis": alice_b if surv_a else random.randint(0, 1),
+                "bob_basis": bob_b if surv_b else random.randint(0, 1),
                 "alice_result": alice_r,
                 "bob_result": bob_r,
-                "lossA": not survived_a,
-                "lossB": not survived_b,
-                "bsm": bsm_success
+                "lossA": not surv_a,
+                "lossB": not surv_b,
+                "bsm": bsm_ok,
+                "hops": 1,
             })
 
-            if survived_a and survived_b:
-                if alice_b == bob_b:
-                    sifted_alice.append(alice_r)
-                    sifted_bob.append(bob_r)
-                    if alice_r != bob_r:
-                        errors += 1
+            if surv_a and surv_b and alice_b == bob_b:
+                sifted_alice.append(alice_r)
+                sifted_bob.append(bob_r)
+                if alice_r != bob_r:
+                    errors += 1
 
-        total_sifted = len(sifted_alice)
-        qber = (errors / total_sifted * 100) if total_sifted > 0 else 0.0
-
-        sim_logs.append(f"Simulation completed. Total trials: {config.numTrials}")
-        sim_logs.append(f"Sifted key length: {total_sifted}")
-        sim_logs.append(f"QBER: {qber:.2f}%")
+        total = len(sifted_alice)
+        qber = (errors / total * 100) if total > 0 else 0.0
+        sim_logs += [f"Sifted key: {total} bits", f"QBER: {qber:.2f}%"]
 
         return {
             "trials": trials_result,
             "logs": sim_logs,
-            "siftedKeyAlice": "".join(str(bit) for bit in sifted_alice),
-            "siftedKeyBob": "".join(str(bit) for bit in sifted_bob),
-            "qber": qber
+            "siftedKeyAlice": "".join(str(b) for b in sifted_alice),
+            "siftedKeyBob": "".join(str(b) for b in sifted_bob),
+            "qber": qber,
+            "alicePath": [alice_id],
+            "bobPath": [bob_id],
         }
 
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/health")
+def health():
+    return {"status": "ok", "mode": "multi-hop quantum network"}
+
 
 if __name__ == "__main__":
     import uvicorn

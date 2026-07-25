@@ -807,3 +807,217 @@
   border: 1px dashed var(--color-classical);
 }
 
+/* ═══════════════════════════════════════════════════════════════
+   KEY EXCHANGE PAIR SELECTOR
+═══════════════════════════════════════════════════════════════ */
+
+.pair-endpoint-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 10px 12px;
+  transition: border-color 0.2s ease;
+}
+
+.pair-badge-a {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  background: linear-gradient(135deg, #0284c7, #38bdf8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 900;
+  font-size: 14px;
+  color: #000;
+  flex-shrink: 0;
+  box-shadow: 0 0 12px rgba(56, 189, 248, 0.5);
+}
+
+.pair-badge-b {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  background: linear-gradient(135deg, #7e22ce, #c084fc);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 900;
+  font-size: 14px;
+  color: #000;
+  flex-shrink: 0;
+  box-shadow: 0 0 12px rgba(192, 132, 252, 0.5);
+}
+
+.pair-pick-btn {
+  flex-shrink: 0;
+  padding: 4px 10px;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  color: var(--text-muted);
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.pair-pick-btn:hover {
+  border-color: var(--color-quantum);
+  color: var(--color-quantum);
+}
+
+.pair-pick-btn.picking {
+  border-color: #fbbf24;
+  color: #fbbf24;
+  background: rgba(251, 191, 36, 0.1);
+  animation: pair-pick-pulse 1.2s ease-in-out infinite;
+}
+
+@keyframes pair-pick-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(251, 191, 36, 0.4); }
+  50% { box-shadow: 0 0 0 6px rgba(251, 191, 36, 0); }
+}
+
+.pair-clear-btn {
+  flex-shrink: 0;
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  border-radius: 50%;
+  color: var(--color-error);
+  font-size: 14px;
+  cursor: pointer;
+  line-height: 1;
+  transition: all 0.15s ease;
+}
+
+.pair-clear-btn:hover {
+  background: rgba(239, 68, 68, 0.25);
+}
+
+/* Route status messages */
+.path-status-ok {
+  margin-top: 12px;
+  padding: 10px 12px;
+  background: rgba(16, 185, 129, 0.08);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  border-radius: 8px;
+  color: var(--color-success);
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.path-status-err {
+  margin-top: 12px;
+  padding: 10px 12px;
+  background: rgba(239, 68, 68, 0.08);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  border-radius: 8px;
+  color: var(--color-error);
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+.path-status-neutral {
+  margin-top: 12px;
+  padding: 10px 12px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  color: var(--text-muted);
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   CANVAS — Path Highlighting & Selection Mode
+═══════════════════════════════════════════════════════════════ */
+
+/* Canvas cursor changes when selecting a pair node */
+.canvas-selecting {
+  cursor: crosshair;
+}
+
+/* Canvas cursor when drawing channels — aim cursor */
+.canvas-drawing {
+  cursor: cell;
+}
+
+.canvas-selecting .node-group,
+.canvas-drawing .node-group {
+  cursor: pointer;
+}
+
+/* Draw mode banner pulse animation */
+@keyframes draw-banner-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.75; }
+}
+
+/* Hoverable node during selection */
+.node-selectable:hover .node-rect {
+  stroke: #fbbf24 !important;
+  filter: drop-shadow(0 0 8px #fbbf24) !important;
+}
+
+/* Active path highlighted channel lines */
+.path-active-line {
+  stroke-width: 2.5px !important;
+  animation: path-pulse-flow 1.5s linear infinite !important;
+  animation-play-state: running !important;
+}
+
+@keyframes path-pulse-flow {
+  0% { stroke-dashoffset: 0; }
+  100% { stroke-dashoffset: -24; }
+}
+
+/* Repeater node glow during simulation */
+@keyframes repeater-swap-glow {
+  0%, 100% { filter: drop-shadow(0 0 4px #a855f7); }
+  50% { filter: drop-shadow(0 0 16px #a855f7) drop-shadow(0 0 28px rgba(168,85,247,0.4)); }
+}
+
+/* Alice/Bob map marker role badges */
+.tag-pair-badge {
+  font-size: 9px;
+  font-weight: 900;
+  padding: 1px 4px;
+  border-radius: 3px;
+  line-height: 1.2;
+}
+
+.tag-pair-badge.alice {
+  background: #38bdf8;
+  color: #000;
+}
+
+.tag-pair-badge.bob {
+  background: #c084fc;
+  color: #000;
+}
+
+.marker-role-alice .marker-badge-icon {
+  box-shadow: 0 4px 14px rgba(56, 189, 248, 0.8), inset 0 1px 1px rgba(255,255,255,0.4);
+  border: 2px solid #38bdf8;
+}
+
+.marker-role-bob .marker-badge-icon {
+  box-shadow: 0 4px 14px rgba(192, 132, 252, 0.8), inset 0 1px 1px rgba(255,255,255,0.4);
+  border: 2px solid #c084fc;
+}
+
+.marker-role-repeater .marker-badge-icon {
+  box-shadow: 0 4px 14px rgba(251, 191, 36, 0.6), inset 0 1px 1px rgba(255,255,255,0.4);
+  border: 2px solid #fbbf24;
+}
+
