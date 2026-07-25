@@ -716,7 +716,8 @@ function App() {
 
     addLog('Requesting SeQUeNCe backend simulation...', 'info');
     try {
-      const response = await fetch('http://localhost:8000/api/simulate', {
+      const backendUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+      const response = await fetch(`${backendUrl}/api/simulate`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -1393,32 +1394,81 @@ function App() {
                           </div>
                           <span className="component-type" style={{ alignSelf: 'flex-start' }}>{comp.type}</span>
                           <div className="component-params">
-                            {comp.efficiency !== undefined && (
-                              <div className="component-param-row">
-                                <span>Efficiency:</span>
-                                <input type="number" className="component-param-value"
-                                  style={{ width: '60px', background: 'transparent', border: 'none', borderBottom: '1px solid var(--border-color)', color: '#fff', textAlign: 'right' }}
-                                  value={comp.efficiency} step="0.01" min="0" max="1"
-                                  onChange={e => handleUpdateComponentParam(comp.id, 'efficiency', e.target.value)} />
-                              </div>
-                            )}
-                            {comp.dark_count !== undefined && (
-                              <div className="component-param-row">
-                                <span>Dark Count Rate:</span>
-                                <input type="number" className="component-param-value"
-                                  style={{ width: '70px', background: 'transparent', border: 'none', borderBottom: '1px solid var(--border-color)', color: '#fff', textAlign: 'right' }}
-                                  value={comp.dark_count} step="1e-7"
-                                  onChange={e => handleUpdateComponentParam(comp.id, 'dark_count', e.target.value)} />
-                              </div>
-                            )}
-                            {comp.mean_photon_num !== undefined && (
-                              <div className="component-param-row">
-                                <span>Mean Photon Pair:</span>
-                                <input type="number" className="component-param-value"
-                                  style={{ width: '50px', background: 'transparent', border: 'none', borderBottom: '1px solid var(--border-color)', color: '#fff', textAlign: 'right' }}
-                                  value={comp.mean_photon_num} step="0.5"
-                                  onChange={e => handleUpdateComponentParam(comp.id, 'mean_photon_num', e.target.value)} />
-                              </div>
+                            {comp.type === 'MemoryArray' ? (
+                              <>
+                                <div className="component-param-row">
+                                  <span>Num Memories:</span>
+                                  <input type="number" className="component-param-value"
+                                    style={{ width: '50px', background: 'transparent', border: 'none', borderBottom: '1px solid var(--border-color)', color: '#fff', textAlign: 'right' }}
+                                    value={comp.num_memories ?? 10} step="1" min="1" max="100"
+                                    onChange={e => handleUpdateComponentParam(comp.id, 'num_memories', e.target.value)} />
+                                </div>
+                                <div className="component-param-row">
+                                  <span>Fidelity:</span>
+                                  <input type="number" className="component-param-value"
+                                    style={{ width: '60px', background: 'transparent', border: 'none', borderBottom: '1px solid var(--border-color)', color: '#fff', textAlign: 'right' }}
+                                    value={comp.fidelity ?? 0.98} step="0.01" min="0" max="1"
+                                    onChange={e => handleUpdateComponentParam(comp.id, 'fidelity', e.target.value)} />
+                                </div>
+                                <div className="component-param-row">
+                                  <span>Coherence (s):</span>
+                                  <input type="number" className="component-param-value"
+                                    style={{ width: '60px', background: 'transparent', border: 'none', borderBottom: '1px solid var(--border-color)', color: '#fff', textAlign: 'right' }}
+                                    value={comp.coherence_time ?? -1} step="0.1"
+                                    onChange={e => handleUpdateComponentParam(comp.id, 'coherence_time', e.target.value)} />
+                                </div>
+                                <div className="component-param-row">
+                                  <span>Efficiency:</span>
+                                  <input type="number" className="component-param-value"
+                                    style={{ width: '60px', background: 'transparent', border: 'none', borderBottom: '1px solid var(--border-color)', color: '#fff', textAlign: 'right' }}
+                                    value={comp.efficiency ?? 1.0} step="0.01" min="0" max="1"
+                                    onChange={e => handleUpdateComponentParam(comp.id, 'efficiency', e.target.value)} />
+                                </div>
+                                <div className="component-param-row">
+                                  <span>Frequency (Hz):</span>
+                                  <input type="number" className="component-param-value"
+                                    style={{ width: '70px', background: 'transparent', border: 'none', borderBottom: '1px solid var(--border-color)', color: '#fff', textAlign: 'right' }}
+                                    value={comp.frequency ?? 80000000} step="1000"
+                                    onChange={e => handleUpdateComponentParam(comp.id, 'frequency', e.target.value)} />
+                                </div>
+                                <div className="component-param-row">
+                                  <span>Wavelength (nm):</span>
+                                  <input type="number" className="component-param-value"
+                                    style={{ width: '50px', background: 'transparent', border: 'none', borderBottom: '1px solid var(--border-color)', color: '#fff', textAlign: 'right' }}
+                                    value={comp.wavelength ?? 500} step="1"
+                                    onChange={e => handleUpdateComponentParam(comp.id, 'wavelength', e.target.value)} />
+                                </div>
+                              </>
+                            ) : (
+                              <>
+                                {comp.efficiency !== undefined && (
+                                  <div className="component-param-row">
+                                    <span>Efficiency:</span>
+                                    <input type="number" className="component-param-value"
+                                      style={{ width: '60px', background: 'transparent', border: 'none', borderBottom: '1px solid var(--border-color)', color: '#fff', textAlign: 'right' }}
+                                      value={comp.efficiency} step="0.01" min="0" max="1"
+                                      onChange={e => handleUpdateComponentParam(comp.id, 'efficiency', e.target.value)} />
+                                  </div>
+                                )}
+                                {comp.dark_count !== undefined && (
+                                  <div className="component-param-row">
+                                    <span>Dark Count Rate:</span>
+                                    <input type="number" className="component-param-value"
+                                      style={{ width: '70px', background: 'transparent', border: 'none', borderBottom: '1px solid var(--border-color)', color: '#fff', textAlign: 'right' }}
+                                      value={comp.dark_count} step="1e-7"
+                                      onChange={e => handleUpdateComponentParam(comp.id, 'dark_count', e.target.value)} />
+                                  </div>
+                                )}
+                                {comp.mean_photon_num !== undefined && (
+                                  <div className="component-param-row">
+                                    <span>Mean Photon Pair:</span>
+                                    <input type="number" className="component-param-value"
+                                      style={{ width: '50px', background: 'transparent', border: 'none', borderBottom: '1px solid var(--border-color)', color: '#fff', textAlign: 'right' }}
+                                      value={comp.mean_photon_num} step="0.5"
+                                      onChange={e => handleUpdateComponentParam(comp.id, 'mean_photon_num', e.target.value)} />
+                                  </div>
+                                )}
+                              </>
                             )}
                           </div>
                         </div>

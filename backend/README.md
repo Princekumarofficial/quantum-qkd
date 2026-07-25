@@ -1,155 +1,102 @@
 # SeQUeNCe QKD Multi-Hop Network Backend (`main.py`)
 
-This README provides a comprehensive guide to the backend service of the Quantum Key Distribution (QKD) simulator. 
+This README provides a detailed technical reference for the backend service of the Quantum Key Distribution (QKD) simulator, located in [backend/main.py](file:///c:/Users/xprin/Desktop/quantum-qkd/backend/main.py). 
 
-This FastAPI-based backend simulates quantum key distribution over both **direct single-hop fiber lines** (using the discrete-event simulation package **SeQUeNCe**) and **dynamic multi-hop topologies** (using a custom-built physical simulation engine).
+The backend is built with **FastAPI** and uses the **SeQUeNCe** quantum network simulation library for both **direct single-hop BBM92 key generation** and **multi-hop quantum repeater entanglement distribution**.
 
 ---
 
 ## 1. High-Level Architecture
 
-The backend serves as a middleware api between a frontend network visualizer/controller and quantum simulation engines. It takes a dynamic topology configuration (nodes, components, quantum/classical channels) and determines the best execution path to simulate entanglement and key generation.
+The backend receives dynamic network configurations from the frontend (nodes, components, quantum/classical channels) and selects the appropriate SeQUeNCe simulation mode:
 
 ```mermaid
 graph TD
-    Client[Frontend Client / API Call] -->|POST /api/simulate| API[FastAPI: run_simulation]
+    Client[Frontend Client / UI] -->|POST /api/simulate| API[FastAPI: run_simulation]
     API --> Parse[Parse Node & Channel Configs]
     Parse --> PathFind[Path Discovery: BFS Search]
     
-    PathFind -->|Path Length > 2 Hops| MultiHop[Multi-Hop Simulation Engine]
-    PathFind -->|Direct Link <= 2 Hops| SeqSim[SeQUeNCe Discrete-Event Simulator]
+    PathFind -->|Multi-Hop Path > 2 Hops| SeqMultiHop[SeQUeNCe Multi-Hop Repeater Engine]
+    PathFind -->|Direct Link <= 2 Hops| SeqDirect[SeQUeNCe Direct BBM92 Simulator]
     
-    subgraph "Multi-Hop Engine (Pure Python)"
-        MultiHop --> BFS[BFS Alice & Bob Paths]
-        BFS --> Chain[Simulate Fiber Loss & Swapping]
-        Chain --> Math[Apply Beer-Lambert & BSM Losses]
-        Math --> Err[Apply Bit-Flip & Basis Mismatch Errors]
+    subgraph "SeQUeNCe Multi-Hop Engine (Quantum Repeater)"
+        SeqMultiHop --> BuildTopo[Build SeQUeNCe Topology: QKDRouterNodes + BSMNodes]
+        BuildTopo --> Rules[Install Generation & Swapping Rules]
+        Rules --> TimelineRun[Run Discrete Event Timeline Queue]
+        TimelineRun --> Measure[Measure Entangled Quantum Memories]
     end
 
-    subgraph "SeQUeNCe Simulator (Discrete-Event)"
-        SeqSim --> Build[Build Timeline & Nodes]
-        Build --> Protocols[Attach Custom Protocols & Taps]
-        Protocols --> Run[Timeline Event Loop Run]
-        Run --> Register[Store Event Data in SIMULATION_TRIALS]
-        Register --> Correction[Post-Process BSM Sign Correction]
+    subgraph "SeQUeNCe Direct Engine (BBM92 SPDC)"
+        SeqDirect --> BuildDirect[Build Timeline, Nodes & SPDC Source]
+        BuildDirect --> Protocols[Attach SimParticipant & SimBSM Protocols]
+        Protocols --> RunTimeline[Run Discrete Event Timeline Queue]
+        RunTimeline --> PostProcess[Post-Process Photon Measurement Outcomes]
     end
     
-    MultiHop --> Post[Sifting & QBER Calculation]
-    Correction --> Post
-    Post --> Response[JSON Result: Trials, Logs, Keys, QBER]
+    SeqMultiHop --> Response[JSON Output: Trials, Logs, Keys, QBER]
+    PostProcess --> Response
     Response --> Client
 ```
 
 ---
 
-## 2. API Schema and Config Models
+## 2. Simulation Modes
 
-The POST request to `/api/simulate` expects a `SimulationConfig` payload, defined using Pydantic models:
-
-*   **`SimulationConfig`**:
-    *   `numTrials`: `int` — Total number of photons/entanglement pairs to generate and measure.
-    *   `nodes`: `List[NodeConfig]` — Graph representing the simulation network.
-    *   `channels`: `List[ChannelConfig]` — Quantum and classical channels linking the nodes.
-    *   `selectedPair`: `Optional[SelectedPair]` — Dict specifying which nodes act as `alice` and `bob`. If omitted, the engine falls back to looking for endpoint nodes containing the words "alice" or "bob" in their IDs.
-*   **`NodeConfig`**:
-    *   `id`: `str`, `name`: `str`, `type`: `"endpoint" | "repeater" | "bsm" | "source"`
-    *   `components`: `List[ComponentConfig]` (e.g., SPDC source, detector efficiency/dark counts).
-*   **`ChannelConfig`**:
-    *   `id`: `str`, `name`: `str`, `type`: `"quantum" | "classical"`
-    *   `src`: `str`, `dst`: `str`
-    *   `distance`: `float` (in meters, defaults to `1000.0`)
-    *   `attenuation`: `float` (in dB/m, defaults to `0.0002` or `0.2 dB/km`)
-    *   `fidelity`: `float` (channel polarization fidelity, defaults to `0.95`)
-    *   `delay`: `float` (classical propagation delay, defaults to `1e-6` s)
+### A. Direct Single-Hop Mode (BBM92 Protocol)
+For direct links between Alice and Bob via a quantum source node:
+* **Entanglement Source**: Uses `TrackedSPDCSource` (subclass of `SPDCSource`) emitting polarization-entangled photon pairs $|\Phi^+\rangle = \frac{1}{\sqrt{2}}(|HH\rangle + |VV\rangle)$.
+* **Channel Propagation**: Photons pass through `QuantumChannel` components with physical distance attenuation, transmission loss, and polarization noise.
+* **Measurement**: Endpoints measure photons in random Rectilinear ($Z$) or Diagonal ($X$) bases using `QSDetectorPolarization`.
+* **BSM Correction**: If a central Bell State Measurement station is used, phase-shift corrections are applied post-measurement ($|\Phi^-\rangle$ / $|\Psi^-\rangle$).
 
 ---
 
-## 3. How the Simulation Works
+### B. Multi-Hop Mode (SeQUeNCe Quantum Repeater)
+For paths with intermediate repeater nodes, the backend builds a discrete-event simulation model using SeQUeNCe's rule-based resource management stack:
 
-The simulation executes in one of two modes based on path length and topology configuration.
+1. **Topology Mapping**:
+   - **`QKDRouterNode`**: Custom router node hosting a `MemoryArray` and a local `ResourceManager`.
+   - **`BSMNode`**: Intermediate measurement station positioned between adjacent routers. If adjacent routers do not have a BSM station between them, a virtual `BSMNode` is automatically inserted.
+   - **Quantum & Classical Channels**: Installed with physical attenuation, delay, and polarization fidelity based on frontend channel configurations.
 
-### A. Multi-Hop Mode (Entanglement Swapping / Repeaters)
-When intermediate repeater nodes exist between the quantum source and the endpoints (making the path longer than a single direct link), the backend runs a high-performance physical simulation engine.
+2. **Rule-Based Entanglement Protocol Stack**:
+   - **Link Entanglement Generation**: Router nodes load `EntanglementGenerationA` rules targeting adjacent `BSMNodes`. Adjacent quantum memories emit photons to the central `BSMNode` for heralded pair generation.
+   - **Entanglement Swapping**: Intermediate repeater nodes evaluate `EntanglementSwappingA` rules when memories with both left and right neighbors reach `ENTANGLED` status. Performing a Bell State Measurement on the stored states swaps entanglement to distant end nodes while freeing intermediate memories. End nodes run `EntanglementSwappingB` rules to receive swap result notifications and apply Pauli corrections ($X/Z$).
 
-#### 1. Path Discovery
-*   Uses a **Breadth-First Search (BFS)** graph traversal (`_find_path_bfs`) on the active quantum channels.
-*   Discovers the optimal path from available `source` (SPDC) nodes to the designated `alice` and `bob` nodes:
-    $$\text{Path}_{\text{Alice}}: [S, N_1, \dots, A] \quad \text{and} \quad \text{Path}_{\text{Bob}}: [S, N_2, \dots, B]$$
-
-#### 2. Photon Propagation & Loss (Beer-Lambert Law)
-*   For each hop along the path, transmissivity $T$ is computed based on distance ($L$) and attenuation ($\alpha$ in dB/meter):
-    $$\text{Loss}_{\text{dB}} = \alpha \times L$$
-    $$T = 10^{-\frac{\text{Loss}_{\text{dB}}}{10}}$$
-*   A random check determines if a photon survives the fiber hop. If a random value $r > T$, the photon is lost (`loss = True`).
-
-#### 3. Entanglement Swapping
-*   At intermediate repeater nodes, Bell State Measurements (BSM) are simulated:
-    *   **Swap Efficiency**: Has a realistic success rate modeled at **84%** ($P_{\text{swap\_success}} = 0.84$). If a random check fails, the entanglement connection is severed, resulting in a loss for that trial.
-    *   **Fidelity Penalty**: Each swapping event incurs a cumulative penalty of **2%** (modeled by multiplying fidelity by `0.98`).
-*   The cumulative fidelity for the path is calculated as:
-    $$\text{Fidelity}_{\text{path}} = \prod_{\text{hops}} \text{Fidelity}_{\text{channel}} \times (0.98)^{N_{\text{swaps}}}$$
-
-#### 4. Measurement & Sifting
-*   If both photons survive, Alice and Bob choose random bases (0 or 1, corresponding to Rectilinear/Diagonal).
-*   If bases match, they measure matching results, subject to **bit-flip errors** governed by path fidelity:
-    *   If a random float is greater than the computed path fidelity, the bit is flipped ($1 - \text{result}$).
-*   If bases mismatch, Alice and Bob measure uncorrelated bits.
-*   Trials with matching bases where both photons survived contribute to the final **Sifted Key**.
+3. **Memory Properties & UI Configuration**:
+   The multi-hop engine reads component properties directly from the frontend payload:
+   - `num_memories`: Number of memory slots per router.
+   - `fidelity`: Raw state fidelity of the quantum memories.
+   - `coherence_time`: Memory state decay time ($s$).
+   - `efficiency`: Excitation efficiency.
+   - `frequency`: Emission rate ($Hz$).
+   - `wavelength`: Emission wavelength ($nm$).
 
 ---
 
-### B. Direct Mode (SeQUeNCe Discrete-Event Simulator)
-For single-hop direct topologies, the backend constructs a discrete-event execution queue using the **SeQUeNCe** simulation library.
+## 3. Key Computations & Statistics
 
-```
-[ Alice ] <====== (Quantum Channel A) ====== [ SPDC Source ] ===== (Quantum Channel B) ======> [ Bob ]
-```
-
-#### 1. Component Mapping
-*   **Timeline**: A discrete-event controller (`Timeline`) manages quantum state tracking and scheduled events in picosecond resolution.
-*   **TrackedSPDCSource**: A custom `SPDCSource` component that generates entangled Bell pairs ($|\Phi^+\rangle = \frac{1}{\sqrt{2}}(|00\rangle + |11\rangle)$) and stamps them with a unique `trial` ID for tracking.
-*   **Quantum/Classical Channels**: Fiber channels modeled with attenuation, delay, and polarization fidelity.
-*   **SimParticipantProtocol**: Placed on Alice/Bob nodes. Includes a custom `PhotonTap` entity which intercepts incoming photons. It chooses a measurement basis at random, invokes `Photon.measure()`, and writes the results directly to the global `SIMULATION_TRIALS` thread-safe tracker.
-*   **SimBSMProtocol**: Placed on `bsm` (Bell State Measurement) nodes to check for two-photon coincidence and returns a Bell state measurement index (0 to 3).
-
-#### 2. BSM Correction / Phase Sign Flips
-If a central BSM node performs the measurement, the resulting entangled states might have anti-correlations or phase offsets depending on which Bell State is measured:
-*   $0 = |\Phi^+\rangle$ (No correction required, identical outcomes)
-*   $1 = |\Phi^-\rangle$ (Phase shift — Bob's outcome must be flipped: `bob_r = 1 - bob_r`)
-*   $2 = |\Psi^+\rangle$ (Anti-correlated states — Bob's outcome is aligned)
-*   $3 = |\Psi^-\rangle$ (Phase-shifted anti-correlated states — Bob's outcome must be flipped: `bob_r = 1 - bob_r`)
+* **Sifting**: Filters out trials where photons were lost or where Alice and Bob measured in mismatched bases ($B_A \neq B_B$).
+* **QBER (Quantum Bit Error Rate)**:
+  $$\text{QBER} = \frac{\sum_{i=1}^{N} (b_{A, i} \oplus b_{B, i})}{N} \times 100\%$$
+* **Key Generation Output**: Returns sifted keys for Alice and Bob along with step-by-step simulation logs and trial data for UI animation playback.
 
 ---
 
-## 4. Key Computations & Statistics
-
-Regardless of simulation mode, the final output includes:
-
-*   **Sifting**: Discards any trials where:
-    1.  Either Alice's or Bob's photon was lost.
-    2.  The chosen measurement bases were different ($B_A \neq B_B$).
-*   **QBER (Quantum Bit Error Rate)**: The ratio of mismatched bits in the sifted key to the total length of the sifted key:
-    $$\text{QBER} = \frac{\sum_{i=1}^{N} (b_{A, i} \oplus b_{B, i})}{N} \times 100\%$$
-*   **Simulation Logs**: An execution trace detailing path routes, hop counts, sifted key lengths, and computed QBER.
-
----
-
-## 5. Setup & Execution
+## 4. Setup & Running
 
 ### Prerequisites
-Make sure Python 3.8+ is installed with the required dependencies:
+Install backend dependencies:
 ```bash
-pip install fastapi uvicorn pydantic
+pip install fastapi uvicorn pydantic sequence
 ```
-*(Ensure the `sequence` simulator package is located in your python path or parent directory).*
 
-### Running the Server
-Launch the backend using Uvicorn:
+### Run Server
 ```bash
 python main.py
 ```
-This runs the API on `http://localhost:8000` with hot-reloading enabled.
+The server will run on `http://localhost:8000`.
 
 ### API Endpoints
-*   `POST /api/simulate`: Submits a topology configuration and returns the sifting results.
-*   `GET /api/health`: Health-check endpoint validating backend server responsiveness.
+* `POST /api/simulate`: Main simulation endpoint accepting topology, node component parameters, channels, and trial counts.
+* `GET /api/health`: Health status endpoint.

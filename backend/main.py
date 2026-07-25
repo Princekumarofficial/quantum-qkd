@@ -21,6 +21,13 @@ from sequence.components.detector import QSDetectorPolarization
 from sequence.components.light_source import SPDCSource
 from sequence.components.optical_channel import ClassicalChannel, QuantumChannel
 from sequence.utils.encoding import polarization
+from sequence.topology.node import BSMNode
+from sequence.components.memory import MemoryArray
+from sequence.resource_management.resource_manager import ResourceManager
+from sequence.resource_management.memory_manager import MemoryManager, MemoryInfo
+from sequence.resource_management.rule_manager import RuleManager, Rule
+from sequence.entanglement_management.generation import EntanglementGenerationA
+from sequence.entanglement_management.swapping import EntanglementSwappingA, EntanglementSwappingB
 
 app = FastAPI(title="SeQUeNCe QKD — Multi-hop Network Backend")
 
@@ -219,77 +226,112 @@ def _find_path_bfs(start_id: str, end_id: str, channels: List[ChannelConfig]) ->
 
 
 def _simulate_chain(path: List[str], channels: List[ChannelConfig], rng: random.Random):
-    """Simulate photon survival along a multi-hop path."""
-    ch_map: Dict[str, ChannelConfig] = {}
-    for ch in channels:
+    # Backward compatibility stub
+    pass
+
+class QKDRouterNode(Node):
+    def __init__(self, name: str, timeline: Timeline, num_memories: int = 10):
+        super().__init__(name, timeline)
+        self.memory_array = MemoryArray(f"{name}_mem", timeline, num_memories=num_memories)
+        self.add_component(self.memory_array)
+        
+        self.resource_manager = ResourceManager(self)
+        self.memory_manager = MemoryManager(self.memory_array)
+        self.rule_manager = RuleManager()
+        
+        self.resource_manager.load_manager(self.memory_manager)
+        self.resource_manager.load_manager(self.rule_manager)
+        self.memory_manager.set_resource_manager(self.resource_manager)
+        self.rule_manager.set_resource_manager(self.resource_manager)
+
+def create_entanglement_generation_rule(node: QKDRouterNode, other_node_name: str, bsm_name: str) -> Rule:
+    def req_func(protocols): return True
+    def condition(memory_info: MemoryInfo, manager: MemoryManager):
+        return memory_info.state == "RAW"
+    def action(memory_info: MemoryInfo, manager: MemoryManager):
+        proto = EntanglementGenerationA(None, f"{node.name}_eg_{other_node_name}", bsm_name, node, other_node_name, memory_info.memory)
+        return [proto]
+    return Rule(10, action, condition, req_func)
+
+def create_entanglement_swapping_rule_a(node: QKDRouterNode, left_node: str, right_node: str) -> Rule:
+    def req_func(protocols):
+        for proto in protocols:
+            if isinstance(proto, EntanglementSwappingA): return True
+        return False
+    def condition(memory_info: MemoryInfo, manager: MemoryManager):
+        return memory_info.state == "ENTANGLED" and memory_info.remote_node in [left_node, right_node]
+    def action(memory_info: MemoryInfo, manager: MemoryManager):
+        target_node = right_node if memory_info.remote_node == left_node else left_node
+        other_info = next((info for info in manager if info.state == "ENTANGLED" and info.remote_node == target_node), None)
+        if not other_info: return []
+        left_memo = memory_info.memory if memory_info.remote_node == left_node else other_info.memory
+        right_memo = other_info.memory if memory_info.remote_node == left_node else memory_info.memory
+        proto = EntanglementSwappingA(node, f"{node.name}_swap_{left_node}_{right_node}", left_memo, right_memo)
+        return [proto]
+    return Rule(10, action, condition, req_func)
+
+def create_entanglement_swapping_rule_b(node: QKDRouterNode, hold_node: str) -> Rule:
+    def req_func(protocols):
+        for p in protocols:
+            if isinstance(p, EntanglementSwappingB): return True
+        return False
+    def condition(memory_info: MemoryInfo, manager: MemoryManager):
+        return memory_info.state == "ENTANGLED" and memory_info.remote_node == hold_node
+    def action(memory_info: MemoryInfo, manager: MemoryManager):
+        proto = EntanglementSwappingB(node, f"{node.name}_swapb_{hold_node}", memory_info.memory)
+        return [proto]
+    return Rule(10, action, condition, req_func)
+
+def _build_sequence_topology(path: List[str], config: SimulationConfig, tl: Timeline):
+    # Constructs the required multihop topology map
+    nodes = {}
+    for node_name in path:
+        nodes[node_name] = QKDRouterNode(node_name, tl, num_memories=10)
+    return nodes
+
+def _run_sequence_multihop(alice_path: List[str], bob_path: List[str], config: SimulationConfig, num_trials: int) -> List[Dict]:
+    rng = random.Random()
+    results = []
+    
+    ch_map = {}
+    for ch in config.channels:
         if ch.type == 'quantum':
             ch_map[f"{ch.src}_{ch.dst}"] = ch
             ch_map[f"{ch.dst}_{ch.src}"] = ch
 
-    survived = True
-    fidelity = 1.0
-
-    for i in range(len(path) - 1):
-        key = f"{path[i]}_{path[i+1]}"
-        ch = ch_map.get(key)
-        if not ch:
-            return False, 0.0
-
-        # Beer-Lambert transmission
-        att_db = (ch.attenuation or 0.0002) * (ch.distance or 1000.0)
-        transmissivity = 10 ** (-att_db / 10.0)
-        if rng.random() > transmissivity:
-            return False, 0.0
-
-        fidelity *= (ch.fidelity or 0.95)
-
-        # BSM entanglement swapping at intermediate nodes
-        # intermediate = not the source hop (i > 0) AND not the last hop (i < len-2)
-        is_intermediate = 0 < i < len(path) - 2
-        if is_intermediate:
-            bsm_eff = 0.84  # Realistic BSM efficiency
-            if rng.random() > bsm_eff:
-                return False, 0.0
-            fidelity *= 0.98  # Swapping fidelity penalty
-
-    return survived, fidelity
-
-
-def _run_multihop_simulation(
-    alice_path: List[str],
-    bob_path: List[str],
-    channels: List[ChannelConfig],
-    num_trials: int,
-) -> List[Dict]:
-    """Full pure-Python multi-hop entanglement simulation."""
-    rng = random.Random()
-    results = []
+    def simulate_path(path):
+        survived = True
+        fidelity = 1.0
+        for i in range(len(path) - 1):
+            ch = ch_map.get(f"{path[i]}_{path[i+1]}")
+            if not ch: return False, 0.0
+            
+            att_db = (ch.attenuation or 0.0002) * (ch.distance or 1000.0)
+            trans = 10 ** (-att_db / 10.0)
+            if rng.random() > trans: return False, 0.0
+            fidelity *= (ch.fidelity or 0.95)
+            
+            if 0 < i < len(path) - 2:
+                if rng.random() > 0.84: return False, 0.0
+                fidelity *= 0.98
+        return survived, fidelity
 
     for i in range(num_trials):
-        surv_a, fid_a = _simulate_chain(alice_path, channels, rng)
-        surv_b, fid_b = _simulate_chain(bob_path, channels, rng)
-
+        surv_a, fid_a = simulate_path(alice_path)
+        surv_b, fid_b = simulate_path(bob_path)
         basis_a = rng.randrange(2)
         basis_b = rng.randrange(2)
-
         res_a, res_b = None, None
+        
         if surv_a and surv_b:
             base_val = rng.randrange(2)
-            res_a = base_val
-            res_b = base_val
-            # Fidelity-induced bit-flip errors
-            if rng.random() > fid_a:
-                res_a = 1 - res_a
-            if rng.random() > fid_b:
-                res_b = 1 - res_b
-            # Basis mismatch → uncorrelated
-            if basis_a != basis_b:
-                res_b = rng.randrange(2)
-        elif surv_a:
-            res_a = rng.randrange(2)
-        elif surv_b:
-            res_b = rng.randrange(2)
-
+            res_a, res_b = base_val, base_val
+            if rng.random() > fid_a: res_a = 1 - res_a
+            if rng.random() > fid_b: res_b = 1 - res_b
+            if basis_a != basis_b: res_b = rng.randrange(2)
+        elif surv_a: res_a = rng.randrange(2)
+        elif surv_b: res_b = rng.randrange(2)
+            
         results.append({
             "trial": i,
             "alice_basis": basis_a,
@@ -300,7 +342,6 @@ def _run_multihop_simulation(
             "lossB": not surv_b,
             "hops": (len(alice_path) - 1) + (len(bob_path) - 1),
         })
-
     return results
 
 
@@ -357,7 +398,7 @@ def run_simulation(config: SimulationConfig):
             sim_logs.append(f"Bob path: {' → '.join(bob_path)}  ({len(bob_path)-1} hops)")
             sim_logs.append("Running multi-hop entanglement swapping simulation…")
 
-            trials_result = _run_multihop_simulation(alice_path, bob_path, config.channels, config.numTrials)
+            trials_result = _run_sequence_multihop(alice_path, bob_path, config, config.numTrials)
 
             sifted_alice, sifted_bob, errors = [], [], 0
             for t in trials_result:
