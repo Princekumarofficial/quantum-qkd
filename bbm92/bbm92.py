@@ -129,10 +129,11 @@ class HardwareParticipantProtocol(Protocol):
         try:
             result = Photon.measure(basis_mat, photon, self.rng)
         except Exception:
-            # fallback: random
-            result = self.rng.randrange(2)
+            # fallback: no detection
+            result = None
 
-        info[f'{role}_result'] = result
+        if result is not None:
+            info[f'{role}_result'] = result
         log.logger.info(f"{self.owner.name} measured trial={trial} basis={basis} result={result} time={self.owner.timeline.now()}")
 
 
@@ -152,7 +153,8 @@ class SiftingProtocol(Protocol):
         for trial, info in TRIALS.items():
             role = 'alice' if 'alice' in self.owner.name.lower() else 'bob'
             b = info.get(f"{role}_basis")
-            if b is not None:
+            res = info.get(f"{role}_result")
+            if b is not None and res is not None:
                 bases[trial] = b
 
         msg = Message(MsgType.CLASSICAL, None)
@@ -175,14 +177,16 @@ class SiftingProtocol(Protocol):
         for trial, their_b in their_bases.items():
             info = TRIALS.get(trial, {})
             my_b = info.get(f"{role}_basis")
-            if my_b is None:
+            my_res = info.get(f"{role}_result")
+            if my_b is None or my_res is None:
                 continue
             if my_b == their_b:
                 # keep bits
                 a = info.get('alice_result')
                 b = info.get('bob_result')
-                key_self.append(a if role == 'alice' else b)
-                key_other.append(b if role == 'alice' else a)
+                if a is not None and b is not None:
+                    key_self.append(a if role == 'alice' else b)
+                    key_other.append(b if role == 'alice' else a)
 
         # store sifting result in TRIALS summary
         log.logger.info(f"{self.owner.name} sifted key length={len(key_self)}")

@@ -390,9 +390,10 @@ def received_message(self, src: str, msg: Message):
     try:
         result = Photon.measure(basis_mat, photon, self.rng)
     except Exception:
-        result = self.rng.randrange(2)   # fallback for lost/null photons
+        result = None   # fallback for lost/null photons
 
-    info[f'{role}_result'] = result
+    if result is not None:
+        info[f'{role}_result'] = result
 \end{lstlisting}
 
 The protocol records the basis and measurement result into the \texttt{TRIALS} dictionary. Both \texttt{QSDetectorPolarization} (hardware model) and \texttt{Photon.measure()} (logical outcome) are called: the former models timing jitter and dark counts; the latter provides the binary bit value used in sifting.
@@ -407,7 +408,8 @@ class SiftingProtocol(Protocol):
         for trial, info in TRIALS.items():
             role = 'alice' if 'alice' in self.owner.name.lower() else 'bob'
             b = info.get(f'{role}_basis')
-            if b is not None:
+            res = info.get(f'{role}_result')
+            if b is not None and res is not None:
                 bases[trial] = b
         # Broadcast bases over classical channel
         msg = Message(MsgType.CLASSICAL, None)
@@ -421,12 +423,14 @@ class SiftingProtocol(Protocol):
         for trial, their_b in their_bases.items():
             info  = TRIALS.get(trial, {})
             my_b  = info.get(f'{role}_basis')
-            if my_b is None or my_b != their_b:
+            my_res = info.get(f'{role}_result')
+            if my_b is None or my_res is None or my_b != their_b:
                 continue   # discard mismatched-basis trials
             a = info.get('alice_result')
             b = info.get('bob_result')
-            key_self.append(a if role == 'alice' else b)
-            key_other.append(b if role == 'alice' else a)
+            if a is not None and b is not None:
+                key_self.append(a if role == 'alice' else b)
+                key_other.append(b if role == 'alice' else a)
         print(f'[{self.owner.name}] Sifted length: {len(key_self)}')
 \end{lstlisting}
 

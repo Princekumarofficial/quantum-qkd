@@ -162,9 +162,10 @@ class SimParticipantProtocol(Protocol):
         try:
             res = Photon.measure(basis_mat, photon, self.rng)
         except Exception:
-            res = self.rng.randrange(2)
+            res = None
 
-        info[f'{self.node_id}_result'] = res
+        if res is not None:
+            info[f'{self.node_id}_result'] = res
 
 
 class SimBSMProtocol(Protocol):
@@ -329,9 +330,9 @@ def _run_sequence_multihop(alice_path: List[str], bob_path: List[str], config: S
             if rng.random() > fid_a: res_a = 1 - res_a
             if rng.random() > fid_b: res_b = 1 - res_b
             if basis_a != basis_b: res_b = rng.randrange(2)
-        elif surv_a: res_a = rng.randrange(2)
-        elif surv_b: res_b = rng.randrange(2)
-            
+        else:
+            if surv_a: res_a = rng.randrange(2)
+            if surv_b: res_b = rng.randrange(2)
         results.append({
             "trial": i,
             "alice_basis": basis_a,
